@@ -1,0 +1,17 @@
+doctype html
+html(lang="en")
+	head
+		title detail
+	body
+		#content
+			h2=content.contenttitle
+			p 
+			=content.content
+			a(href="#{content.url}")=content.url
+		h1(style="border-bottom:solid")
+		#relate
+			label Related News
+			each val in relate
+				#div
+					a(href="/detail?id="+val._id)
+						span=val._source.contenttitle

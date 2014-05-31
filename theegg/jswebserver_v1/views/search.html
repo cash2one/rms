@@ -1,0 +1,40 @@
+<html>
+    
+    <head>
+        <meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
+        <title>search result</title>
+    </head>
+    
+    <body>
+        <fieldset>
+            <legend>search demo:</legend>
+            <input type="" id="keyword_input" style="width:320px;height:24px;"
+            />
+            <input type="button" onclick="searchClick();" value="search" />
+        </fieldset>
+        <!--total -->
+        <span>Total:
+            <%=total %>results</span>
+        <!--page -->
+                                <!--page -->
+                                <!-- -->
+                                <!-- -->
+                                <!-- -->
+                                <script>
+                                    function searchClick() {
+
+                                        //alert(11);
+                                        var kw = document.getElementById("keyword_input");
+                                        url = "/query?kw=" + trimStr(kw.value);
+                                        //    alert(url);
+                                        window.location = url;
+                                    }
+
+                                    function trimStr(str) {
+                                        return str.replace(/(^\s*)|(\s*$)/g, "");
+                                    }
+                                </script>
+    </body>
+
+</html>
+

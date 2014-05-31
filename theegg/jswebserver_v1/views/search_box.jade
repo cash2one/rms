@@ -1,0 +1,9 @@
+form(action="/query")
+ fieldset
+   legend search
+   input#keyword_input(type="text",name="kw",style="width:320px;height:24px;",value="#{kw}")
+   input(type="submit",value="search")
+ -if(total>=0)
+  #summary 
+   =total +" "  
+   | results

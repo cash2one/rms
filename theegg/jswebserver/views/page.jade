@@ -1,0 +1,12 @@
+p#page(style="display:inline;")
+- if(pagestart>1)
+       a(href="#{baseurl}&page=#{pagestart-1}") prev   
+- for (var i=pagestart;i<=pageend;i++)
+     -if(i==currentpage)
+          span     
+            = "  "+ i +"   "
+      -else
+           a(href="#{baseurl}&page=#{i}") 
+            = "  "+ i +"   "
+ -if (pageend<total)
+        a(href="#{baseurl}&page=#{pageend+1}") next

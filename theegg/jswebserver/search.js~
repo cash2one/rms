@@ -1,0 +1,116 @@
+var elasticsearch = require ('elasticsearch');
+var client = new elasticsearch.Client ({
+host:				       'localhost:9200',
+log:				       'trace'
+				       }
+
+);
+
+exports.queryUrl = function (req, res)
+{
+  console.log ("queryUrl: %s", req.query.url);
+  client.search (
+		  {
+
+  index: 'news', type: 'content', body:{
+    query:	  {
+      match:	  {
+      url:	  req.query.url}
+		  }
+		  }
+
+		  }
+  ).then (function (resp)
+	  {
+	  if (resp.hits.hits.length > 0)
+	  {
+	  var id = resp.hits.hits[0]._id; res.send (resp.hits.hits[0]);
+	  // req.query.id=id;
+	  //  res.send(resp);
+	  // res.write(resp.hits.hits[0]);
+//            req.query.id=
+	  //exports.queryMlt(req,res);
+	  }	  else
+	  {
+	  res.send (404); res.end (
+				    {
+    "error":			    "no result response."}
+	  );}
+	  }
+	  , function (err)
+	  {
+	  console.trace (err.message);}
+  );
+
+};
+
+exports.queryMlt = function (req, res)
+{
+  console.log ("queryMlt: %s", req.query.url);
+
+  id = req.query.id;
+  client.mlt (
+	       {
+index: 'news', type: 'content', id: id, mlt_fields:'content,contenttitle'}
+
+  ).then (function (resp)
+	  {
+	  //res.setHeader('Content-Type','text/html;charset=UTF-8');
+	  console.log ("finish queryMlt: %s", req.query.url);
+	  res.send (resp.hits.hits);
+	  //       res.write(resp);
+	  //      res.end();
+	  }
+  );
+
+};
+
+exports.queryKw = function (req, res)
+{
+
+  var pageNum = request.param ('page', 1);
+  var perPage = request.param ('per_page', 15);
+  var userQuery = request.param ('search_query');
+  var userId = request.session.userId;
+
+  client.search (
+		  {
+  index: 'posts', from: (pageNum - 1) * perPage, size: perPage, body:{
+    filtered:	  {
+      query:	  {
+	match:	  {
+	_all:	  userQuery}
+		  }
+      , filter:  {
+	or:	  [
+		    {
+	  term:    {
+	  privacy: "public"}
+		    }
+		    ,
+		    {
+	  term:    {
+	  owner:   userId}
+		    }
+		  ]}
+		  }
+		  }
+		  }
+		  , function (error, response)
+		  {
+		  if (err)
+		  {
+		  // handle error
+		  return;}
+
+		  response.render ('search_results',
+				   {
+  results: response.hits.hits, page: pageNum, pages:Math.ceil (response.hists.total /
+					      perPage)}
+		  )}
+  );
+
+
+}
+
+module.exports = exports;
