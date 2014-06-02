@@ -1,0 +1,29 @@
+{
+  "name": "nodejieba",
+  "description": "chinese segment for node",
+  "version": "0.1.4",
+  "author": "Yanyi Wu <wuyanyi09@gmail.com>",
+  "maintainers": [
+    "aszxqw <wuyanyi09@gmail.com>"
+  ],
+  "main": "./index.js",
+  "engines": {
+    "node": "0.10.x"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/aszxqw/nodejieba.git"
+  },
+  "keywords": [
+    "chinese",
+    "segment",
+    "cppjieba",
+    "jieba"
+  ],
+  "dependencies": {
+    "nan": "~0.8.0"
+  },
+  "devDependencies": {},
+  "scripts": {},
+  "license": "MIT"
+}

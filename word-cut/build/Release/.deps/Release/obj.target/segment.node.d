@@ -1,0 +1,1 @@
+cmd_Release/obj.target/segment.node := flock ./Release/linker.lock g++ -shared -pthread -rdynamic -m64  -Wl,-soname=segment.node -o Release/obj.target/segment.node -Wl,--start-group Release/obj.target/segment/src/segment.o -Wl,--end-group 
