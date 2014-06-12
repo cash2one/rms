@@ -6,8 +6,8 @@ var client = new elasticsearch.Client({
 }
 
 );
-//var indexConfig={"index":"theegg_v2","type":"searchasiav2"};
-var indexConfig={"index":"theegg_v3","type":"searchasia_v3"};
+//var indexConfig={"index":"theegg_v3","type":"searchasiav3"};
+var indexConfig={"index":"cosmopolitan_v3","type":"cos_v3"};
 
 exports.queryUrl = function(req, res) {
     console.log("queryUrl: %s", req.query.url);
@@ -146,7 +146,6 @@ exports.queryId = function(req, res) {
         });
     }], function(err, results) {
         //log('1.1 results: ', results); // ->[ 'a400', 'a200', 'a300' ]
-
         //res.render("detail",{"content":results[0],"mlt":results[1]});
         console.trace("result:::::",result);
         res.render("detail",result);
@@ -154,6 +153,8 @@ exports.queryId = function(req, res) {
     });
 
 };
+
+
 
 module.exports = exports;
 

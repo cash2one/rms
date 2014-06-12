@@ -1,0 +1,11 @@
+{
+	"search": {
+		"host": "localhost",
+		"port": 9200,
+		"index": "theegg_v3",
+		"type": "content_v3",
+	},
+	"analyzer": "ik",
+	"default": "nothing"
+
+}
