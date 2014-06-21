@@ -1,0 +1,6 @@
+[2014-06-21 03:50:40.336] [INFO] dateFileLog - request_id:1403322640203.8606,msg:[[path:/query;query:{}]],time cost:[133 ms]
+[2014-06-21 03:50:40.763] [INFO] dateFileLog - request_id:1403322640760.2983,msg:[[path:/favicon.ico;query:{}]],time cost:[3 ms]
+[2014-06-21 03:50:47.378] [INFO] dateFileLog - request_id:1403322647253.2056,msg:[[path:/query;query:{"kw":"*","perpage":"10","page":"6"}]],time cost:[125 ms]
+[2014-06-21 03:50:55.487] [INFO] dateFileLog - request_id:1403322655408.4705,msg:[[path:/detail;query:{"id":"3454"}]],time cost:[79 ms]
+[2014-06-21 03:51:29.875] [INFO] dateFileLog - request_id:1403322689730.692,msg:[[path:/query;query:{"kw":"*","perpage":"10","page":"6","index":"theegg_v3"}]],time cost:[145 ms]
+[2014-06-21 05:33:05.648] [INFO] dateFileLog - request_id:1403328785555.1301,msg:[[path:/query;query:{"kw":"*","perpage":"10","page":"6","index":"theegg_v3","type ":"searchasia_v3"}]],time cost:[93 ms]
