@@ -22,8 +22,8 @@ app.use(function(req,res,next){
 	req.logmsg="";
 	req.request_id=request_id;
 	req.stime=Date.now();
-	req.appendlog=function(msg){
-			req.logmsg+= "["+msg+"]";
+	req.appendlog=function(format){
+		req.logmsg+= "["+util.format.apply(format,arguments)+"]";
 	};
 	req.on ('end', function () {
 		
@@ -38,6 +38,7 @@ app.use(function(req,res,next){
 app.use(function(err,req,res,next){
 	if(!err) return next();
 	var m=util.format("request_id:%d,msg:[%s],error:%j",req.request_id,req.logmsg,err.stack);
+	res.render('404',{errmsg:m});
 	logger.error(m);
 	console.log(m);
 });
@@ -65,6 +66,9 @@ app.all("/query", function(req, res) {
 });
 app.all("/detail", function(req, res) {
 	search.queryId(req, res);
+});
+app.all("/recommander",function(req,res){
+    search.queryFlt(req,res);
 });
 app.all("*",function(req,res){
 	var m=util.format("request_id: %d, status:%d",req.request_id,404);

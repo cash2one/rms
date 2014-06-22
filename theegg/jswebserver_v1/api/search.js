@@ -1,4 +1,5 @@
 var elasticsearch = require('elasticsearch');
+var util = require('util');
 var async = require('async');
 var client=undefined; 
 /*
@@ -28,12 +29,10 @@ exports.init=function(conf){
 exports.queryUrl = function(req, res) {
 	index=req.param('index',indexConfig.index);
 	type=req.param('type',indexConfig.type);
-	//indexConfig.index=index;
-	//indexConfig.type=type;
 	console.log("queryUrl: %s", req.query.url);
 	client.search({
-		index: indexConfig.index,
-		type:indexConfig.type,
+		index: index,
+		type: type,
 		body: {
 			query: {
 				match: {
@@ -42,7 +41,10 @@ exports.queryUrl = function(req, res) {
 			}
 		}
 
-	}).then(function(resp) {
+	}).then(function(error,resp) {
+		if(error){
+			req.appendlog("Error happen: %s",error);
+		}
 		if (resp.hits.hits.length > 0) {
 			var id = resp.hits.hits[0]._id;
 			res.send(resp.hits.hits[0]);
@@ -69,8 +71,6 @@ exports.queryMlt = function(req, res) {
 	id = req.query.id;
 	index=req.param('index',indexConfig.index);
 	type=req.param('type',indexConfig.type);
-	//indexConfig.index=index;
-	//indexConfig.type=type;
 	client.mlt({
 		index: index,
 		type:type,
@@ -85,6 +85,89 @@ exports.queryMlt = function(req, res) {
 		//       res.write(resp);
 		//      res.end();
 	});
+
+};
+exports.queryFlt=function(req,res){
+	var flt=function(pageContent){
+		client.search({
+			index: index,
+			type:type,
+			body:{
+				_source:["contenttitle","url"],
+				from:0,
+				size:20,
+				query:{
+
+					//"fuzzy_like_this" : {
+					"more_like_this" : {
+						"fields" : ["content","contenttitle"],
+						"max_query_terms":10,
+						"like_text":pageContent
+                }
+            }
+
+			}
+		}
+		).then(function(resp) {
+			etime=Date.now();
+			req.appendlog("finish queryFlt cost:%d ms",(etime-stime));
+//			res.send(resp.hits.hits);
+			var hits=resp.hits.hits;
+			var result=[];
+			var uq=[];
+			for(var h in hits){
+				var title=hits[h]._source.contenttitle;
+				if(uq[title]>0) continue;
+				uq[title]=1;
+				result.push({'id':hits[h]._id,'url':hits[h]._source.url,title:hits[h]._source.contenttitle,score:hits[h]._score});
+			}
+			var s=JSON.stringify(result);
+			delete uq;
+			res.send(s);
+			
+		});
+	}
+	stime=Date.now();
+//	req.appendlog("queryFlt: %s", req.query.url);
+
+	id = req.query.id;
+	index=req.param('index',indexConfig.index); 
+    type=req.param('type',indexConfig.type); 
+    var url=req.param('targetUrl',""); 
+    if(url.length<1){
+        var m=util.format("resource not found: %s",url)
+        res.render('404',{errmsg:m})
+    }
+
+	client.search({
+		index: index,
+		type: type,
+		body: {
+			query: {
+				match: {
+					url:url 
+				}
+			}
+		}
+
+	}).then(function(resp) {
+		if (resp.hits.hits.length > 0) {
+			var id = resp.hits.hits[0]._id;
+			var body=resp.hits.hits[0]._source.content;
+			var title=resp.hits.hits[0]._source.contenttitle;
+			req.appendlog("id: %s, title: %s, body: %s", id, title,body);
+		//	res.send(resp.hits.hits[0]);
+			flt(title+"  "+body);
+		} else { 
+			var m= util.format("Not Found Url: %s",url);
+			req.appendlog(m);
+			//res.render('404',{errmsg:m});
+
+		}
+	}, function(err) {
+		console.trace(err.message);
+	});
+
 
 };
 
@@ -192,10 +275,6 @@ exports.queryId = function(req, res) {
 					cb();
 				});
 			}], function(err, results) {
-				//log('1.1 results: ', results); // ->[ 'a400', 'a200', 'a300' ]
-
-				//res.render("detail",{"content":results[0],"mlt":results[1]});
-				//console.trace("result:::::",result);
 				if(jsonformat==0){
 				res.render("detail",result);
 				}else if(jsonformat==1){

@@ -2,8 +2,13 @@
 	"search": {
 		"host": "localhost",
 		"port": 9200,
-		"index": "theegg_v3",
-		"type": "searchasia_v3"
+		"index": "theegg",
+		"type": "searchasia,cosmopolitan"
+	},
+	"domains":{
+		"searchblog.asia":"searchasia",
+		"cosmopolitan.com.hk":"cosmopolitan",
+		"default":"default"
 	},
 	"analyzer": "ik",
 	"default": "nothing"
