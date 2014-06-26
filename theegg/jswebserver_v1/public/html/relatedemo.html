@@ -1,6 +1,101 @@
 <html>
 	<head><title>M</title></head>
-	<body>
-		
+	<body>	
+		<fieldset>
+			<legend>search filter
+			</legend>
+			<div>
+				<div>
+					<span>type:</span>
+					<span><input class="domain" type="checkbox" />searchasia</span>
+					<span><input class="domain" type="checkbox" />cosmopolitan</span>
+				</div>
+				<span>Url:</span><input id="url" type="text"
+				value="http://www.searchblog.asia/japan/google-japan-serp-changes-and-experiments/" style="width:80%" />
+				<input type="button" value="fire" onclick="search();"/>
+			</div>
+		</fieldset>
+		<div id="content">
+			
+		</div>
+		<script src="../jquery.min.js"></script>
+		<script>
+			var search=function(){
+				var domains=$(".domain");
+				var type="";
+				domains.each(function(index,ele){
+//					alert(ele+" :"+index);
+					if(ele.checked)
+						type+=$(ele).parent().text()+",";
+				});
+				//alert(type);
+				if(type==""){
+				 type="searchasia,cosmopolitan";
+				}
+				else{
+					type=type.substring(0,type.length-1);
+				}
+				var u=$("#url");
+				var url=u.val();
+				var index="theegg";
+//				var type="searchasia,cosmopolitan";
+				$.ajax(
+				{
+					url:"/recommander",
+					type:"get",
+					data:{targetUrl:url,index:index,type:type},
+					error:function(req,err){
+						var content=$("#content");
+						content.text(err);
+						
+					},
+					success:function(data,textStatus){
+//						alert(textStatus);
+						var content=$("#content");
+						content.html('');
+						console.log(data);
+						var rets=JSON.parse(data);
+						if(rets.error_code!=undefined){
+							content.text(data);
+							return;
+						}
+						for(var r in rets){
+							var s=format("<a href='{1}'>{0}</a>",rets[r].title,rets[r].url);
+							if(rets[r].bannerid>0){
+								s+= format("<span>==></span><a href='#{0}'>banner id</a>",rets[r].bannerid);
+							}
+							s+="<br/>"
+							content.append(s);
+
+		//					content.add(JSON.stringify(rets[r]));
+						}
+					},
+
+				}
+				
+				);
+
+			}
+			var format= function (source, params) { 
+				if (arguments.length == 1) 
+				return function () { 
+					var args = $.makeArray(arguments); 
+					args.unshift(source); 
+					return $.format.apply(this, args); 
+				}; 
+				if (arguments.length > 2 && params.constructor != Array) { 
+					params = $.makeArray(arguments).slice(1); 
+				} 
+				if (params.constructor != Array) { 
+					params = [params]; 
+				} 
+				$.each(params, function (i, n) { 
+					source = source.replace(new RegExp("\\{" + i + "\\}",
+					"g"), n); 
+				}); 
+				return source; 
+			}; 
+
+		</script>
 	</body>
 </html>

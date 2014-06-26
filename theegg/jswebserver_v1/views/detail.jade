@@ -13,5 +13,5 @@ html(lang="en")
 			label Related News
 			each val in relate
 				#div
-					a(href="/detail?id="+val._id+"&index=#{content._index}"+"&type=#{content._type}")
+				a(href="/detail?id="+val._id+"&index=#{val._index}"+"&type=#{val._type}&targetUrl=#{val._source.url}")
 						span=val._source.contenttitle

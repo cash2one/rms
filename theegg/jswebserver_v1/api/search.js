@@ -29,22 +29,24 @@ exports.init=function(conf){
 exports.queryUrl = function(req, res) {
 	index=req.param('index',indexConfig.index);
 	type=req.param('type',indexConfig.type);
-	console.log("queryUrl: %s", req.query.url);
+	url=req.param('targetUrl','');
+	if(url==''){
+		res.send(404);
+		return;
+	}
+	console.log("targetUrl: %s", req.query.url);
 	client.search({
 		index: index,
 		type: type,
 		body: {
 			query: {
 				match: {
-					url: req.query.url
+					url: url
 				}
 			}
 		}
 
-	}).then(function(error,resp) {
-		if(error){
-			req.appendlog("Error happen: %s",error);
-		}
+	}).then(function(resp) {
 		if (resp.hits.hits.length > 0) {
 			var id = resp.hits.hits[0]._id;
 			res.send(resp.hits.hits[0]);
@@ -89,7 +91,7 @@ exports.queryMlt = function(req, res) {
 };
 exports.queryFlt=function(req,res){
 	var flt=function(pageContent){
-		client.search({
+	queryBody={	
 			index: index,
 			type:type,
 			body:{
@@ -107,26 +109,76 @@ exports.queryFlt=function(req,res){
             }
 
 			}
+		};
+		if(type.indexOf(",")>0){
+			queryBody.body.query.fuzzy_like_this=queryBody.body.query.more_like_this;
+			delete queryBody.body.query.more_like_this;
 		}
-		).then(function(resp) {
+		client.search(queryBody).then(function(resp) {
 			etime=Date.now();
 			req.appendlog("finish queryFlt cost:%d ms",(etime-stime));
 //			res.send(resp.hits.hits);
 			var hits=resp.hits.hits;
-			var result=[];
+			var urls=[];
 			var uq=[];
 			for(var h in hits){
 				var title=hits[h]._source.contenttitle;
 				if(uq[title]>0) continue;
 				uq[title]=1;
-				result.push({'id':hits[h]._id,'url':hits[h]._source.url,title:hits[h]._source.contenttitle,score:hits[h]._score});
+				urls.push(hits[h]._source.url);
+//				result.push({'id':hits[h]._id,'url':hits[h]._source.url,title:hits[h]._source.contenttitle,score:hits[h]._score});
+			}
+			revive(urls,hits);
+			
+		});
+	};
+	var result=[];
+	var revive=function(urls,hits){
+	//	console.log(JSON.stringify(urls));
+		var arr_url=[];
+		var ind={index:'theegg_revive',type:'revive'};
+		for(var u in urls){
+			arr_url.push(ind);
+			arr_url.push({_source:['bannerid','url','contenttitle'],query:{match:{url:urls[u]}}});
+		}
+		client.msearch({
+			body:arr_url		
+		},function(error,response){
+			var ra=response.responses;
+
+			var uq=[];
+			var ub=[]
+			for(var rs in ra){
+				if(ra[rs].hits.length<1 || ra[rs].hits.hits.length<1){
+					continue;
+				}
+					var uu=ra[rs].hits.hits[0]._source;
+				if(ra[rs].hits.hits.length>0){
+					ub[uu.url]=uu.bannerid;
+				}
+				else {ub[uu.url]=-1;}
+			}
+			for(var h in hits){
+				var title=hits[h]._source.contenttitle;
+				var url=hits[h]._source.url;
+				if(uq[title]>0) continue;
+				uq[title]=1;
+				urls.push(hits[h]._source.url);
+				var bannerid=0;
+				if(ub[url]>0){
+					bannerid=ub[url];
+				}
+				result.push({'id':hits[h]._id,'url':hits[h]._source.url,title:hits[h]._source.contenttitle,score:hits[h]._score,bannerid:ub[url]});
 			}
 			var s=JSON.stringify(result);
 			delete uq;
 			res.send(s);
 			
 		});
-	}
+
+
+
+	};
 	stime=Date.now();
 //	req.appendlog("queryFlt: %s", req.query.url);
 
@@ -136,8 +188,9 @@ exports.queryFlt=function(req,res){
     var url=req.param('targetUrl',""); 
     if(url.length<1){
         var m=util.format("resource not found: %s",url)
-        res.render('404',{errmsg:m})
-    }
+    	res.send(JSON.stringify({request_id:req.request_id,errmsg:m}));
+		res.end(404);
+	}
 
 	client.search({
 		index: index,
@@ -150,7 +203,8 @@ exports.queryFlt=function(req,res){
 			}
 		}
 
-	}).then(function(resp) {
+	}).then(function(resp,err) {
+//		console.log(err);
 		if (resp.hits.hits.length > 0) {
 			var id = resp.hits.hits[0]._id;
 			var body=resp.hits.hits[0]._source.content;
@@ -161,6 +215,9 @@ exports.queryFlt=function(req,res){
 		} else { 
 			var m= util.format("Not Found Url: %s",url);
 			req.appendlog(m);
+			console.log(m);
+    		res.send(JSON.stringify({request_id:req.request_id,errmsg:m,error_code:40011}));
+			res.end(404);
 			//res.render('404',{errmsg:m});
 
 		}
@@ -218,6 +275,15 @@ exports.queryKw = function(req, res) {
 
 exports.queryId = function(req, res) {
 	var id = req.param("id", -1);
+	var url=req.param("targetUrl","");
+	if(url.length<1){
+			var m= util.format("Not Found Url: %s or URL is empty",url);
+			req.appendlog(m);
+			console.log(m);
+    		res.send(JSON.stringify({request_id:req.request_id,errmsg:m,error_code:40012}));
+			res.end(404);
+			return;
+	}
 	index=req.param('index',indexConfig.index);
 	type=req.param('type',indexConfig.type);
 	//indexConfig.index=index;
@@ -229,36 +295,58 @@ exports.queryId = function(req, res) {
 		return;
 	}
 	result={};
-	async.parallel([
-
+	async.series([
 			function(cb) {
 				//content
-				client.get({
+				client.search({
 					index: index,
 					type: type,
-					id: id,
+					body:{
+						query:{
+							match:{
+								url:url
+							}
+						}
+					}
 				}).then(function(resp) {
-					result["content"]=resp._source;
-					result["content"]._index=resp._index;
-					result["content"]._type=resp._type;
+					console.log(resp);
+					if(resp.hits.hits.length>0){
+						var top1=resp.hits.hits[0];
+						//console.trace(top1);
+						result["content"]=top1._source;
+						result["content"]._index=top1._index;
+						result["content"]._type=top1._type;
+						result["content"]._url=top1._source.url;
 					cb();
-
-					//            console.trace(resp);
-
-
+					}
+					else{
+						var m=util.format("resource not found: %s",url)
+						res.send(JSON.stringify({request_id:req.request_id,errmsg:m}));
+						res.end(404);
+					cb();
+					}
 				});;
 
 			}, function(cb) {
 				//mlt
-				client.mlt({
+				console.log('=-=============================');
+//				console.trace(result["content"]);
+				client.search({
 					index: index,
 					type: type,
-					id: id,
-					mlt_fields: 'content,contenttitle'
+					body:{
+						query:{
+							"more_like_this":{
+								"fields" : ["content","contenttitle"],
+								"max_query_terms":10,
+								"like_text":result["content"].content+" "+result["content"].contenttitle,
+							}
+						}
+					}
 				}
-
 				).then(function(resp) {
 					//result["relate"]=resp.hits.hits;
+					req.appendlog("related new search end. time:"+Date.now());
 					result["relate"]=[];
 					ct=[];
 					for(var i in resp.hits.hits){ 
@@ -266,7 +354,7 @@ exports.queryId = function(req, res) {
 						var ii=encodeURIComponent(ele._source.contenttitle);
 						if(ct[ii]==1) continue;
 						ct[ii]=1;
-						result["relate"].push({_id:ele._id,_source:{
+						result["relate"].push({_id:ele._id,_index:ele._index,_type:ele._type,_source:{
 								contenttitle:ele._source.contenttitle,
 								url:ele._source.url
 							}});

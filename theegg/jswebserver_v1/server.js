@@ -38,7 +38,8 @@ app.use(function(req,res,next){
 app.use(function(err,req,res,next){
 	if(!err) return next();
 	var m=util.format("request_id:%d,msg:[%s],error:%j",req.request_id,req.logmsg,err.stack);
-	res.render('404',{errmsg:m});
+    res.send(JSON.stringify({request_id:req.request_id,errmsg:m}));
+	res.end(404);
 	logger.error(m);
 	console.log(m);
 });
