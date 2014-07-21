@@ -6,18 +6,25 @@
 			</legend>
 			<div>
 				<div>
-					<span>type:</span>
+					<span>site:</span>
 					<span><input class="domain" type="checkbox" />searchasia</span>
-					<span><input class="domain" type="checkbox" />cosmopolitan</span>
-				</div>
-				<span>Url:</span><input id="url" type="text"
-				value="http://www.searchblog.asia/japan/google-japan-serp-changes-and-experiments/" style="width:80%" />
+					<span><input class="domain" type="checkbox"  checked=true/>cosmopolitan</span> </div> <span>Url:</span><input id="url" type="text"
+				value="http://www.cosmopolitan.com.hk/beauty/hair-style/apivita-hair-loss-treatment" style="width:80%" />
 				<input type="button" value="fire" onclick="search();"/>
 			</div>
 		</fieldset>
+		<div style="padding:4px;margin:5px;">
+		<div id="source"> 
+			
+
+		</div>
+		<div id="jsonurl">
+
+		</div>
 		<div id="content">
 			
 		</div>
+	</div>
 		<script src="../jquery.min.js"></script>
 		<script>
 			var search=function(){
@@ -38,6 +45,7 @@
 				var u=$("#url");
 				var url=u.val();
 				var index="theegg";
+				var sourceUrl=format("http://{0}/{1}?index={2}&type={3}&targetUrl={4}",window.location.host,"recommander",index,type,url);
 //				var type="searchasia,cosmopolitan";
 				$.ajax(
 				{
@@ -46,6 +54,7 @@
 					data:{targetUrl:url,index:index,type:type},
 					error:function(req,err){
 						var content=$("#content");
+						$('#jsonurl').html('');
 						content.text(err);
 						
 					},
@@ -53,22 +62,35 @@
 //						alert(textStatus);
 						var content=$("#content");
 						content.html('');
+						content.append("<div><strong>related links:</strong></div>");
 						console.log(data);
 						var rets=JSON.parse(data);
 						if(rets.error_code!=undefined){
 							content.text(data);
+						$('#jsonurl').html('');
 							return;
 						}
+						$("#jsonurl").html(format("<span>the JSON format:<a target='_blank' href='{0}'> {0}</a></span>",sourceUrl));
+						content.append("<table>");
 						for(var r in rets){
-							var s=format("<a href='{1}'>{0}</a>",rets[r].title,rets[r].url);
+							var s="<tr>";
+								s+=format("<td><a target='_blank' href='{1}'>{0}</a></td>",rets[r].title,rets[r].url);
+							var detail=format("/detail?id={0}&targetUrl={1}&index={2}&type={3}",rets[r].id,rets[r].url,index,type);
+							s+=format("<td><span>==></span><a target='_blank' href='{0}'>more detail</a></td>",detail);
 							if(rets[r].bannerid>0){
-								s+= format("<span>==></span><a href='#{0}'>banner id</a>",rets[r].bannerid);
+								s+= format("<td><span>==></span><a target='_blank' href='http://106.187.43.168/ra/www/admin/banner-htmlpreview.php?bannerid={0}'>banner</a></td>",rets[r].bannerid);
 							}
-							s+="<br/>"
+							else{
+								s+="<td></td>";
+							}
+							s+="</tr>";
 							content.append(s);
 
 		//					content.add(JSON.stringify(rets[r]));
+		console.log(s);
 						}
+
+						content.append("</table>");
 					},
 
 				}

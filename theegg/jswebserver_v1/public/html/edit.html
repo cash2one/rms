@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+    
+    <head>
+        <meta charset="UTF-8">
+        <title>Update Index -- theegg</title>
+        <script type="text/javascript" src="/views/js/jquery.min.js"></script>
+        <script type="text/javascript" src="/views/js/jquery.autosize.min.js"></script>
+        <link rel="stylesheet" href="/views/css/pure-0.5-min.css" />
+        <link rel="stylesheet" href="/views/css/hint.min.css" />
+        <link rel="stylesheet" href="/views/css/index.css" />
+        <!-- 左边这就是自定义样式文件 -->
+        <script type="text/javascript">
+            if (navigator.userAgent.toLowerCase().indexOf("msie 6") > -1 || navigator.userAgent.toLowerCase().indexOf("msie 7") > -1) {
+                alert("Plz use a modern browser to try this demo!");
+            }
+            var hideNotice = function() {
+                    $('#notice').hide(100);
+                }
+            $(function() {
+                $('.left > textarea').focus(); // 页面加载完毕后将焦点交给左侧框
+                $('#clear').click(function() {
+                    $('.left > textarea').val(""); // 清空左侧框
+                });
+
+                $('.left > textarea').autosize(); // 监听左侧内容改变自动更正高度
+                var index = function(ct) {
+
+                        if ($(".left > textarea").val() == "") {
+                            $('#notice').text("content should not be null").show(100);
+                            setTimeout(hideNotice, 3000);
+                            return; // 如果左侧框为空就不处理并弹提示
+                        } // end if
+                        var postdata = $("#url, #contenttitle, #content, input[type=radio]:checked").serialize();
+
+                        //alert(postdata);
+                        postdata += ct;
+                        $.ajax({ // 向服务器发出 POST 分词请求
+                            type: "post",
+                            url: "/add",
+                            // 这里是处理 POST 分词请求的目的地址，请务必按需要来改!!!
+                            data: postdata,
+                            // 序列化结果是：source=待分句子&param1=第一个数&param2=第二个，$_POST['source']、$_POST['param1']这样接收皆可
+                            async: false,
+                            success: function(data) { // 这里直接返回分完的结果纯文本data，如果是json的话请先解析再赋给右侧框
+                                $('#notice').text("success:" + JSON.stringify(data)).show(100);
+                                setTimeout(hideNotice, 3000);
+                            },
+                            error: function(XMLHttpRequest, textStatus, errorThrown) {
+                                $('#notice').text("Request Fail!").show(100);
+                                setTimeout(hideNotice, 3000);
+                            }
+                        });
+                    };
+                $('#add').click(function() {
+                    var ctime = "&ctime=" + Date.now();
+                    index(ctime);
+
+                });
+
+                $('#update').click(function() {
+                    var ctime = "&ctime=0";
+                    index(ctime);
+
+                });
+
+            });
+        </script>
+    </head>
+    
+    <body>
+        <script type="text/javascript">
+            var _bdhmProtocol = (("https:" == document.location.protocol) ? " https://" : " http://");
+            document.write(unescape("%3Cscript src='" + _bdhmProtocol + "hm.baidu.com/h.js%3F7c04459c43e769dc2852b78d1d5f922b' type='text/javascript'%3E%3C/script%3E"));
+        </script>
+        <!-- 顶部代码开始 -->
+        <div class="header">
+            <div class="title">Update Index-- Theegg Recommander System</div>
+        </div>
+        <!-- 顶部代码结束 -->
+        <!-- 核心部分开始 -->
+        <div class="main pure-form">
+            <div class="left">
+                <div class="pure-form-stacked">
+                    <input class='longinput' placeholder="URL" id="url" name="url" />
+                    <input class='longinput' placeholder="Content title" id="contenttitle"
+                    name="contenttitle" />
+                    <textarea class="textarea" placeholder="Content" id="content" name="content"
+                    required></textarea>
+                </div>
+                <div class="pure-g">
+                    <label class="pure-u-1-3">Index</label>
+                    <label for="op1" class="pure-radio pure-u-2-3">
+                        <input id="op1" type="radio" name="index" value="theegg" checked>Theegg</label>
+                    <label class="pure-u-1-3">Type</label>
+                    <label for="op2" class="pure-radio pure-u-1-3">
+                        <input id="op2" type="radio" name="type" value="searchblog">Search Blog</label>
+                    <label for="op3" class="pure-radio pure-u-1-3">
+                        <input id="op3" type="radio" name="type" value="cosmopolitan" checked>Cosmopolitan</label>
+                </div>
+                <div>
+                    <button class="pure-button pure-button-primary" id="add">Add Document</button>
+                    <button class="pure-button pure-button-secondary"
+                    id="update">Update Document</button>
+                </div>
+            </div>
+            <div class="middle">
+                <div class="tool">
+                    <span class="hint--right" data-hint="清空">
+                        <div id="clear"></div>
+                    </span>
+                </div>
+                <button class="pure-button pure-button-primary" id="submit">Analysis</button>
+            </div>
+            <div class="right">
+                <textarea class="textarea" placeholder="show results" id="result"></textarea>
+                <textarea class="textarea keyword" placeholder="show top 10 keywords"
+                id="keyword"></textarea>
+            </div>
+            <div class="clear"></div>
+        </div>
+        <br>
+        <br>
+        <!-- 核心部分结束 -->
+        <!-- 尾部代码开始 -->
+        <div class="footer"></div>
+        <!-- 尾部代码结束 -->
+        <!-- 错误提示开始 -->
+        <div id="notice"></div>
+        <!-- 错误提示正确 -->
+    </body>
+
+</html>
+

@@ -87,12 +87,18 @@ var c = new Crawler({
 
 db.setCrawler(c);
 console.log(db.baseSite);
+c.queue("http://www.cosmopolitan.com.hk/");
+c.queue("http://www.cosmopolitan.com.hk/beauty/beauty-features/kevin-biggest-beauty-secrets");
+c.queue("http://www.cosmopolitan.com.hk/fashion/fashion-features/playing-field");
+c.queue("http://www.cosmopolitan.com.hk/lifestyle/self-career/how-be-better-me");
 //c.queue("http://www.cosmopolitan.com.hk/beauty/beauty-lessons/tummy-killers");
+/*
 db.queueUrl(function(count){
  if(count<=0){
     c.queue(db.baseSite);
  }
 });
+*/
 
 setInterval(function() {
     //    console.log("queuedCount:"+c.getQueuedCount());

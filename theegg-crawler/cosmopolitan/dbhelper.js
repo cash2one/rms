@@ -56,7 +56,7 @@ var dbhelper = function() {
 
             if (!self.crawler) return;
             console.log("queue url:");
-            this.conn.query('SELECT * FROM `queue` WHERE `status`=0 LIMIT 0,100', function(e, result) {
+            this.conn.query('SELECT * FROM `queue` WHERE `status`=0 order by id desc LIMIT 0,100', function(e, result) {
                 console.log("queue url:" + result.length);
                 if (result.length > 0) {
                     for (var i = 0; i < result.length; i++) {

@@ -11,7 +11,7 @@ var client=undefined;
    );
    */
 
-var indexConfig={"index":"theegg_v3","type":"searchasia_v3"};
+var indexConfig={"index":"theegg","type":"cosmopolitan"};
 
 var config={};
 exports.init=function(conf){
@@ -235,6 +235,7 @@ exports.queryKw = function(req, res) {
 	var kw = req.param('kw', "*");
 	index=req.param('index',indexConfig.index);
 	type=req.param('type',indexConfig.type);
+	req.appendlog("index:"+index+" type:"+type);
 	//indexConfig.index=index;
 	//indexConfig.type=type;
 
@@ -271,6 +272,46 @@ exports.queryKw = function(req, res) {
 		   })
 		   */
 	});
+};
+exports.extractKeyword=function(req,res,keyword){
+	
+	index=req.param('index',indexConfig.index);
+	type=req.param('type',indexConfig.type);
+	analyzer=req.param('analyzer','ik');
+	var text=req.param('text','');
+	if(text=='')
+	{
+		res.send({"request_id":req.request_id,"error_code":50010,"err_msg":"text should not empty."});
+		return;
+	}
+	client.indices.analyze({
+		"index":index,
+		"text":text,
+		"analyzer":analyzer,
+		format:"detailed"
+	
+	
+	}).then(function(resp){
+//		console.log("resp:"+JSON.stringify(resp));
+//		res.send(resp);
+		var tokens=resp.tokens;
+		var arr=[];
+		for(var t in tokens){
+//			if(tokens[t].token.length>=2)
+				arr.push(tokens[t].token);
+		}
+//		console.log("source: "+JSON.stringify(arr));
+		var ret=keyword.calculateIdf(arr);
+//		console.log("idf:" + JSON.stringify(ret));
+		res.send(ret);
+		
+		
+		
+	});
+	
+
+
+
 };
 
 exports.queryId = function(req, res) {

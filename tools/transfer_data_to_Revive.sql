@@ -1,0 +1,1 @@
+insert into rv_banners(url,statustext,bannertext,description, updated, comments,parameters,campaignid)  select url, title as statustext,body as bannertext,title as description,now() as updated," " as comments,'N;' as parameters, 1 as campaignid from cosmopolitan.websites where LENGTH(body)>100 ;

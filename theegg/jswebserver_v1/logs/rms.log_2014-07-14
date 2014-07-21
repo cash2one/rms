@@ -1,0 +1,6 @@
+[2014-07-14 09:39:40.300] [INFO] dateFileLog - request_id:1405330780294.942,msg:[[ClientIP:119.236.107.2][path:/views/html/relatedemo.html;query:{}]],time cost:[6 ms]
+[2014-07-14 09:39:40.570] [INFO] dateFileLog - request_id:1405330780504.6577,msg:[[ClientIP:119.236.107.2][path:/views/jquery.min.js;query:{}]],time cost:[65 ms]
+[2014-07-14 09:52:49.735] [INFO] dateFileLog - request_id:1405331569734.851,msg:[[ClientIP:119.236.107.2][path:/views/html/relatedemo.html;query:{}]],time cost:[1 ms]
+[2014-07-14 09:52:49.987] [INFO] dateFileLog - request_id:1405331569986.4934,msg:[[ClientIP:119.236.107.2][path:/views/jquery.min.js;query:{}]],time cost:[1 ms]
+[2014-07-14 10:48:58.220] [INFO] dateFileLog - request_id:1405334938218.9385,msg:[[ClientIP:119.236.107.2][path:/views/html/relatedemo.html;query:{}]],time cost:[2 ms]
+[2014-07-14 10:48:58.507] [INFO] dateFileLog - request_id:1405334938447.61,msg:[[ClientIP:119.236.107.2][path:/views/jquery.min.js;query:{}]],time cost:[60 ms]

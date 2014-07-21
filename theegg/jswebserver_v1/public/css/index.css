@@ -1,0 +1,139 @@
+@charset "utf-8";
+
+* {
+	outline: none;
+}
+
+body {
+	background: url(../img/bg.gif);
+}
+
+.header {
+	background-color: #ddd;
+	padding: 10px 0 12px;
+}
+
+.header .title {
+	width: 960px;
+	margin: 0 auto;
+	font: 36px/1 'Segoe UI','Microsoft Yahei',SimSun,'Wenquanyi Micro Hei',Ubuntu;
+}
+
+.main {
+	width: 960px;
+	margin: 10px auto;
+}
+
+.left, .right {
+	width: 430px;
+	float: left;
+	text-align: center;
+}
+
+.left div {
+	text-align: left;
+}
+
+.middle {
+	width: 100px;
+	float: left;
+	text-align: center;
+}
+
+.middle button {
+	margin-top: 100px;
+}
+
+.clear {
+	clear: both;
+}
+
+textarea {
+	height: 434px;
+	width: 100%;
+	resize: none;
+	margin: 10px 0 20px;
+	text-align: left;
+}
+.longinput{
+	width:100%;
+
+
+}
+.leftalign{
+	text-align:left;
+}
+.rightalign{
+
+text-align:right;
+}
+
+.left textarea {
+	padding-right: 30px!important;
+}
+.keyword {
+	height:84px;
+
+
+}
+
+#p1{
+	width: 100px;
+}
+
+.inleft {
+	width: 110px;
+	float: left;
+	height: 40px;
+}
+
+.inright {
+	float: left;
+	width: 315px;
+	height: 40px;
+	font: 16px/20px 'Segoe UI','Microsoft Yahei',SimSun,'Wenquanyi Micro Hei',Ubuntu;
+}
+
+input[type=radio] {
+	outline: none!important;
+}
+
+.tool {
+	z-index: 6;
+	width: 35px;
+	margin-left: -34px;
+	margin-top: 18px;
+	height: 90px;
+}
+
+#clear {
+	background: url(../img/clear.png) center center no-repeat;
+	width: 20px;
+	height: 20px;
+	cursor: pointer;
+}
+
+button img {
+	vertical-align: middle;
+}
+
+.footer {
+	font: 16px/28px 'Segoe UI','Microsoft Yahei',SimSun,'Wenquanyi Micro Hei',Ubuntu;
+	text-align: center;
+	margin: 16px 0;
+}
+
+#notice {
+	position: absolute;
+	top:0;
+	left: 50%;
+	margin-left: -150px;
+	width: 300px;
+	background-color: #777; 
+	padding: 7px 0;
+	color: white;
+	display: none;
+	text-align: center;
+	font: 14px/1 'Segoe UI','Microsoft Yahei',SimSun,'Wenquanyi Micro Hei',Ubuntu;
+	border-radius: 0px 0px 4px 4px;
+}

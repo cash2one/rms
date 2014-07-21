@@ -3,7 +3,7 @@
 		"host": "localhost",
 		"port": 9200,
 		"index": "theegg",
-		"type": "searchasia,cosmopolitan"
+		"type": "cosmopolitan"
 	},
 	"domains":{
 		"searchblog.asia":"searchasia",
