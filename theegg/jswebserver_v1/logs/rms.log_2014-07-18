@@ -1,2 +1,0 @@
-[2014-07-18 06:15:00.951] [INFO] dateFileLog - request_id:1405664100206.426,msg:[[ClientIP:113.104.64.13][path:/query;query:{}][index:theegg type:cosmopolitan]],time cost:[745 ms]
-[2014-07-18 06:15:01.184] [INFO] dateFileLog - request_id:1405664101184.5984,msg:[[ClientIP:113.104.64.13][path:/favicon.ico;query:{}]],time cost:[0 ms]

@@ -1,2 +1,0 @@
-[2014-07-24 09:12:23.367] [INFO] dateFileLog - request_id:1406193143365.1365,msg:[[ClientIP:113.104.64.14][path:/views/html/relatedemo.html;query:{}]],time cost:[2 ms]
-[2014-07-24 09:12:23.637] [INFO] dateFileLog - request_id:1406193143490.618,msg:[[ClientIP:113.104.64.14][path:/views/jquery.min.js;query:{}]],time cost:[147 ms]
