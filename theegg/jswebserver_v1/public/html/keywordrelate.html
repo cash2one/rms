@@ -1,0 +1,193 @@
+<html>
+	<head><title>M</title></head>
+	<body>	
+		<fieldset>
+			<legend>search filter
+			</legend>
+			<div>
+				<div>
+					<span>site:</span>
+					<span><input class="domain" type="checkbox" />searchasia</span>
+					<span><input class="domain" type="checkbox"  checked=true/>cosmopolitan</span> </div> <span>Url:</span><input id="url" type="text"
+				value="http://www.cosmopolitan.com.hk/beauty/hair-style/apivita-hair-loss-treatment" style="width:80%" />
+				<input type="button" value="fire" onclick="search();"/>
+			</div>
+		</fieldset>
+		<div style="padding:4px;margin:5px;">
+		<div id="source"> 
+			
+
+		</div>
+		<div><span></span><span id="keyword_result"></span></div>
+		<div id="jsonurl">
+
+		</div>
+		<div id="content">
+			
+		</div>
+	</div>
+		<script src="../jquery.min.js"></script>
+		<script>
+			var search=function(){
+				var domains=$(".domain");
+				var type="";
+				domains.each(function(index,ele){
+//					alert(ele+" :"+index);
+					if(ele.checked)
+						type+=$(ele).parent().text()+",";
+				});
+				//alert(type);
+				if(type==""){
+				 type="searchasia,cosmopolitan";
+				}
+				else{
+					type=type.substring(0,type.length-1);
+				}
+				var u=$("#url");
+				var url=u.val();
+				var index="theegg";
+				//1. load url's content & title
+
+				$.ajax(
+				{
+					url:"/url",
+					type:"get",
+					data:{targetUrl:url,index:index,type:type},
+					error:function(req,err){
+						var content=$("#content");
+						$('#jsonurl').html('');
+						content.text(err);
+						
+					},
+					success:function(data,textStatus){
+						extractkeywords(data._source.content);
+						console.log("1. content:"+JSON.stringify(data));
+					},
+
+				}
+				
+				);
+
+				//2. extract content & title's keywords
+				extractkeywords=function(text){
+
+                    $.ajax({ // 向服务器发出 POST 分词请求
+                        type: "post",
+                        url: "/ek",
+                        // 这里是处理 POST 分词请求的目的地址，请务必按需要来改!!!
+						data: {"text":text},//$(".left textarea, #p1, input[type=radio]:checked").serialize(),
+                        // 序列化结果是：source=待分句子&param1=第一个数&param2=第二个，$_POST['source']、$_POST['param1']这样接收皆可
+                        async: false,
+                        success: function(data) { // 这里直接返回分完的结果纯文本data，如果是json的话请先解析再赋给右侧框
+                            var result = "";
+                            var keyword = [];
+                            for (var a in data) {
+                                var s = data[a].score + "";
+                                result += data[a].word + ":" + s.substring(0, s.indexOf(".") + 3) + "/ ";
+                                if (data[a].word.length > 1 && isNaN(data[a].word)) {
+                                    keyword.push(data[a]);
+                                }
+                            }
+                            ks = keyword.sort(function(a, b) {
+                                return b.score - a.score;
+                            });
+
+                            var c = ks.length > 20 ? 20 : ks.length;
+							var qk="";
+                            for (i = 0; i < c; i++) {
+								qk+=keyword[i].word+" ";
+                            }
+							console.log("2. keywords:"+qk );
+							$("#keyword_result").html(format("keywords: <b>{0}</b>",qk));
+							var sourceUrl=format("http://{0}/{1}?index={2}&type={3}&keyword={4}",window.location.host,"recommander2",index,type,qk);
+							$("#jsonurl").html(format("<span>the JSON format:<a target='_blank' href='{0}'> {0}</a></span>",sourceUrl));
+							keywordSearch(qk);
+                        },
+                        error: function(XMLHttpRequest, textStatus, errorThrown) {
+                            $('#notice').text("处理请求失败!").show(100);
+                            //setTimeout(hideNotice, 3000);
+                        }
+                    });
+
+
+				}
+
+				//3. search the keywords, find the related documents.
+				keywordSearch=function(keyword){
+				$.ajax(
+				{
+					url:"/recommander2", /*recommand by multikeywords*/
+					type:"get",
+					data:{keyword:keyword,index:index,type:type},
+					error:function(req,err){
+						var content=$("#content");
+						$('#jsonurl').html('');
+						content.text(err);
+						
+					},
+					success:function(data,textStatus){
+//						alert(textStatus);
+						var content=$("#content");
+						content.html('');
+						content.append("<div><strong>related links:</strong></div>");
+						console.log(data);
+						var rets=JSON.parse(data);
+						if(rets.error_code!=undefined){
+							content.text(data);
+						$('#jsonurl').html('');
+							return;
+						}
+						content.append("<table>");
+						for(var r in rets){
+							var s="<tr>";
+								s+=format("<td><a target='_blank' href='{1}'>{0}</a></td>",rets[r].title,rets[r].url);
+							var detail=format("/detail?id={0}&targetUrl={1}&index={2}&type={3}",rets[r].id,rets[r].url,index,type);
+							s+=format("<td><span>==></span><a target='_blank' href='{0}'>more detail</a></td>",detail);
+							if(rets[r].bannerid>0){
+								s+= format("<td><span>==></span><a target='_blank' href='http://106.187.43.168/ra/www/admin/banner-htmlpreview.php?bannerid={0}'>banner</a></td>",rets[r].bannerid);
+							}
+							else{
+								s+="<td></td>";
+							}
+							s+="</tr>";
+							content.append(s);
+
+		//					content.add(JSON.stringify(rets[r]));
+		console.log(s);
+						}
+
+						content.append("</table>");
+					},
+
+				}
+				
+				);
+
+
+				}
+			
+
+			}
+			var format= function (source, params) { 
+				if (arguments.length == 1) 
+				return function () { 
+					var args = $.makeArray(arguments); 
+					args.unshift(source); 
+					return $.format.apply(this, args); 
+				}; 
+				if (arguments.length > 2 && params.constructor != Array) { 
+					params = $.makeArray(arguments).slice(1); 
+				} 
+				if (params.constructor != Array) { 
+					params = [params]; 
+				} 
+				$.each(params, function (i, n) { 
+					source = source.replace(new RegExp("\\{" + i + "\\}",
+					"g"), n); 
+				}); 
+				return source; 
+			}; 
+
+		</script>
+	</body>
+</html>

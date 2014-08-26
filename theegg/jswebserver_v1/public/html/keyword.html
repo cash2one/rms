@@ -1,141 +1,142 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-<head>
-	<meta charset="UTF-8">
-	<title>Keyword Demo -- theegg</title>
+    
+    <head>
+        <meta charset="UTF-8">
+        <title>Keyword Demo -- theegg</title>
+        <script type="text/javascript" src="/views/js/jquery.min.js"></script>
+        <script type="text/javascript" src="/views/js/jquery.autosize.min.js"></script>
+        <link rel="stylesheet" href="/views/css/pure-0.5-min.css" />
+        <link rel="stylesheet" href="/views/css/hint.min.css" />
+        <link rel="stylesheet" href="/views/css/index.css" />
+        <!-- 左边这就是自定义样式文件 -->
+        <script type="text/javascript">
+            if (navigator.userAgent.toLowerCase().indexOf("msie 6") > -1 || navigator.userAgent.toLowerCase().indexOf("msie 7") > -1) {
+                alert("Plz use a modern browser to try this demo!");
+            }
+            var autoResize = function() { // 左右侧高度同步函数
+                    $('#result').height($('.left > textarea').height());
+                };
+            var hideNotice = function() {
+                    $('#notice').hide(100);
+                }
+            $(function() {
+                $('.left > textarea').focus(); // 页面加载完毕后将焦点交给左侧框
+                $('#clear').click(function() {
+                    $('.left > textarea').val(""); // 清空左侧框
+                });
 
-	<script type="text/javascript" src="/views/js/jquery.min.js"></script>
-	<script type="text/javascript" src="/views/js/jquery.autosize.min.js"></script>
-	<link rel="stylesheet" href="/views/css/pure-0.5-min.css" />
-	<link rel="stylesheet" href="/views/css/hint.min.css" />
-	<link rel="stylesheet" href="/views/css/index.css" /><!-- 左边这就是自定义样式文件 -->
-	<script type="text/javascript">
-		if( navigator.userAgent.toLowerCase().indexOf("msie 6") > -1 || navigator.userAgent.toLowerCase().indexOf("msie 7") > -1 ) {
-			alert("Plz use a modern browser to try this demo!");
-		}
-		var autoResize = function() {  // 左右侧高度同步函数
-			$('#result').height( $('.left > textarea').height() );
-		};
-		var hideNotice = function() {
-			$('#notice').hide(100);
-		}
-		$(function(){
-			$('.left > textarea').focus(); // 页面加载完毕后将焦点交给左侧框
-			$('#clear').click(function() {
-				$('.left > textarea').val(""); // 清空左侧框
-			});
+                $('.left > textarea').autosize(); // 监听左侧内容改变自动更正高度
+                $('.left > textarea').keydown(autoResize); // 触发高度同步
+                $('.left > textarea').change(autoResize); // 触发高度同步
+                $('#submit').click(function() { // 处理分词请求
+                    var sentence = $(".left > textarea").val();
+                    if (sentence == "") {
+                        $('#notice').text("text should not be null!").show(100);
+                        setTimeout(hideNotice, 3000);
+                        return; // 如果左侧框为空就不处理并弹提示
+                    } else if (sentence.length > 204800) {
+                        $('#notice').text("text too long, the max length is 200k!").show(4100);
+                        setTimeout(hideNotice, 3000);
+                        return; // 如果左侧框为空就不处理并弹提示
 
-			$('.left > textarea').autosize(); // 监听左侧内容改变自动更正高度
-			$('.left > textarea').keydown(autoResize); // 触发高度同步
-			$('.left > textarea').change(autoResize); // 触发高度同步
 
-			$('#submit').click(function() { // 处理分词请求
+                    }
 
-				if( $(".left > textarea").val() == "" ) {
-					$('#notice').text("Sentences should not be null!").show(100);
-					setTimeout(hideNotice, 3000);
-					return; // 如果左侧框为空就不处理并弹提示
-				} // end if
+                    //				alert($(".left textarea, #p1, input[type=radio]:checked").serialize());
+                    $.ajax({ // 向服务器发出 POST 分词请求
+                        type: "post",
+                        url: "/ek",
+                        // 这里是处理 POST 分词请求的目的地址，请务必按需要来改!!!
+                        data: $(".left textarea, #p1, input[type=radio]:checked").serialize(),
+                        // 序列化结果是：source=待分句子&param1=第一个数&param2=第二个，$_POST['source']、$_POST['param1']这样接收皆可
+                        async: false,
+                        success: function(data) { // 这里直接返回分完的结果纯文本data，如果是json的话请先解析再赋给右侧框
+                            var result = "";
+                            var keyword = [];
+                            for (var a in data) {
+                                var s = data[a].score + "";
+                                result += data[a].word + ":" + s.substring(0, s.indexOf(".") + 3) + "/ ";
+                                if (data[a].word.length > 1 && isNaN(data[a].word)) {
+                                    keyword.push(data[a]);
+                                }
+                            }
+                            ks = keyword.sort(function(a, b) {
+                                return b.score - a.score;
+                            });
 
-//				alert($(".left textarea, #p1, input[type=radio]:checked").serialize());
+                            var c = ks.length > 20 ? 20 : ks.length;
+                            var sk = "";
+                            for (i = 0; i < c; i++) {
+                                var s = keyword[i].score + "";
+                                sk += keyword[i].word + ":" + s.substring(0, s.indexOf(".") + 3) + "/ ";
+                            }
+                            $('#result').val(result);
+                            $('#keyword').val(sk);
+                        },
+                        error: function(XMLHttpRequest, textStatus, errorThrown) {
+                            $('#notice').text("处理请求失败!").show(100);
+                            setTimeout(hideNotice, 3000);
+                        }
+                    });
+                });
 
-				$.ajax({ // 向服务器发出 POST 分词请求
-					type : "post",
-					url : "/ek",  // 这里是处理 POST 分词请求的目的地址，请务必按需要来改!!!
-					data : $(".left textarea, #p1, input[type=radio]:checked").serialize(), 
-					// 序列化结果是：source=待分句子&param1=第一个数&param2=第二个，$_POST['source']、$_POST['param1']这样接收皆可
-					async : false, 
-					success : function(data){ // 这里直接返回分完的结果纯文本data，如果是json的话请先解析再赋给右侧框
-						var result="";
-						var keyword=[];
-						for(var a in data){
-							var s=data[a].score+"";
-							result+=data[a].word+":"+s.substring(0,s.indexOf(".")+3)+"/ ";
-							if(data[a].word.length>1 && isNaN(data[a].word)){
-								keyword.push(data[a]);
-							}
-						}
-						ks=keyword.sort(function(a,b){
-							return b.score-a.score;
-							});
+            });
+        </script>
+    </head>
+    
+    <body>
+        <script type="text/javascript">
+            var _bdhmProtocol = (("https:" == document.location.protocol) ? " https://" : " http://");
+            document.write(unescape("%3Cscript src='" + _bdhmProtocol + "hm.baidu.com/h.js%3F7c04459c43e769dc2852b78d1d5f922b' type='text/javascript'%3E%3C/script%3E"));
+        </script>
+        <!-- 顶部代码开始 -->
+        <div class="header">
+            <div class="title">Keyword Demo -- Theegg Recommander System</div>
+        </div>
+        <!-- 顶部代码结束 -->
+        <!-- 核心部分开始 -->
+        <div class="main pure-form">
+            <div class="left">
+                <textarea class="textarea" placeholder="Enter sentences to analysis" name="text"
+                required></textarea>
+                <div>
+                    <div>
+                        <div class="inleft"></div>
+                        <div class="inright"></div>
+                        <div class="clear"></div>
+                    </div>
+                    <label for="op1" class="pure-radio">
+                        <input id="op1" type="radio" name="analyzer" value="ik" checked>IK Analyzer</label>
+                    <label for="op2" class="pure-radio">
+                        <input id="op2" type="radio" name="analyzer" value="mmseg">MMSEG Analyzer</label>
+                </div>
+            </div>
+            <div class="middle">
+                <div class="tool">
+                    <span class="hint--right" data-hint="清空">
+                        <div id="clear"></div>
+                    </span>
+                </div>
+                <button class="pure-button pure-button-primary" id="submit">Analysis</button>
+            </div>
+            <div class="right">
+                <textarea class="textarea" placeholder="show results" id="result"></textarea>
+                <textarea class="textarea keyword" placeholder="show top 10 keywords"
+                id="keyword"></textarea>
+            </div>
+            <div class="clear"></div>
+        </div>
+        <br>
+        <br>
+        <!-- 核心部分结束 -->
+        <!-- 尾部代码开始 -->
+        <div class="footer"></div>
+        <!-- 尾部代码结束 -->
+        <!-- 错误提示开始 -->
+        <div id="notice"></div>
+        <!-- 错误提示正确 -->
+    </body>
 
-						var c=ks.length>10?10:ks.length;
-						var sk="";
-						for(i=0;i<c;i++){
-							var s=keyword[i].score+"";
-							sk+=keyword[i].word+":"+s.substring(0,s.indexOf(".")+3)+"/ ";
-						}
-						$('#result').val(result);
-						$('#keyword').val(sk);
-					},
-					error : function(XMLHttpRequest, textStatus, errorThrown) {
-						$('#notice').text("处理请求失败!").show(100);
-						setTimeout(hideNotice, 3000);
-					}
-				});
-			});
-
-		});
-	</script>
-</head>
-<body>
-<script type="text/javascript">
-var _bdhmProtocol = (("https:" == document.location.protocol) ? " https://" : " http://");
-document.write(unescape("%3Cscript src='" + _bdhmProtocol + "hm.baidu.com/h.js%3F7c04459c43e769dc2852b78d1d5f922b' type='text/javascript'%3E%3C/script%3E"));
-</script>
-
-<!-- 顶部代码开始 -->
-<div class="header">
-	<div class="title">
-		Keyword Demo -- Theegg Recommander System	
-	</div>
-</div>
-<!-- 顶部代码结束 -->
-<!-- 核心部分开始 -->
-<div class="main pure-form">
-	<div class="left">
-		<textarea class="textarea" placeholder="Enter sentences to analysis" name="text" required></textarea>
-		<div>
-			<div>
-				<div class="inleft">
-				</div>
-				<div class="inright">
-				</div>
-				<div class="clear"></div>
-			</div>
-			<label for="op1" class="pure-radio">
-				<input id="op1" type="radio" name="analyzer" value="ik" checked>
-			IK Analyzer	
-			</label>
-			<label for="op2" class="pure-radio">
-				<input id="op2" type="radio" name="analyzer" value="mmseg" >
-			MMSEG Analyzer
-			</label>
-		</div>
-	</div>
-	<div class="middle">
-		<div class="tool">
-			<span class="hint--right" data-hint="清空"><div id="clear"></div></span>
-		</div>
-		<button class="pure-button pure-button-primary" id="submit">Analysis</button>
-	</div>
-	<div class="right">
-		<textarea class="textarea" placeholder="show results" id="result"></textarea>
-		<textarea class="textarea keyword" placeholder="show top 10 keywords" id="keyword"></textarea>
-	</div>
-	<div class="clear">
-	</div>
-</div>
-<br>
-<br>
-<!-- 核心部分结束 -->
-<!-- 尾部代码开始 -->
-<div class="footer">
-</div>
-<!-- 尾部代码结束 -->
-<!-- 错误提示开始 -->
-<div id="notice">
-</div>
-<!-- 错误提示正确 -->
-</body>
 </html>
+
