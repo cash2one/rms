@@ -1,0 +1,25 @@
+.result{
+	display: inline-block;
+	width:100%;
+	border-left:solid 2px;
+
+}
+.item{
+	width:480px;
+	display:block;
+	float:left;
+}
+.result img{
+	width:180px;
+	height:180px;
+	padding-top:20px;
+	padding-right:8px;
+	float:left;
+
+}
+.item h3{
+
+}
+.result p{
+
+}

@@ -1,0 +1,270 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta name="generator"
+    content="HTML Tidy for HTML5 (experimental) for Windows https://github.com/w3c/tidy-html5/tree/c63cc39" />
+    <meta charset="UTF-8" />
+    <title>3.5</title>
+    <script type="text/javascript" src="../js/jquery.min.js"></script>
+    <script type="text/javascript" src="../js/jquery.autosize.min.js"></script>
+    <link rel="stylesheet" href="../css/pure-0.5-min.css" />
+    <link rel="stylesheet" href="../css/hint.min.css" />
+    <link rel="stylesheet" href="../css/index.css" />
+    <!-- 左边这就是自定义样式文件 -->
+	<style>
+	.none{display:none;}
+	.cell-width{width:400px;}
+	</style>
+    <script type="text/javascript">
+     if( navigator.userAgent.toLowerCase().indexOf("msie 6") > -1 || navigator.userAgent.toLowerCase().indexOf("msie 7") > -1 ) {
+			alert("本系统前端效果不兼容IE7及以下版本浏览器，但并不影响功能，不过还是建议您更新您的浏览器。");
+		}
+		var autoResize = function() {  // 左右侧高度同步函数
+			$('.left > iframe').height( $('.middle').height() );
+			$('.right').height( $('.middle').height() );
+		};
+		var hideNotice = function() {
+			$('#notice').hide(100);
+		}
+		$(function(){
+			$('.left > textarea').focus(); // 页面加载完毕后将焦点交给左侧框
+			$('#clear').click(function() {
+				$('.left > textarea').val(""); // 清空左侧框
+			});
+
+			$('.middle').autosize(); // 监听左侧内容改变自动更正高度
+			$('.middle> textarea').change(autoResize); // 触发高度同步
+			var s2=$("#step2div");
+			var s3=$("#step3div");
+			var s4=$("#step4div");
+			$('#step1submit').click(function() { // 处理step1请求
+			var url=$("#url").val();
+			
+			s2.css("display","block");
+			s3.css("display","block");
+			s4.css("display","block");
+			var iframe=$("#preview");
+			iframe.html("");
+			iframe.attr("src",url);
+			search(url);
+
+			
+			});
+			$('#step2submit').click(function() { // 处理step2请求
+
+			
+			});
+			$('#step3submit').click(function() { // 处理step3请求
+
+			
+			});
+			var search=function(url){
+				var type="article";
+				var index="theegg";
+				//1. load url's content & title
+
+				$.ajax(
+				{
+					url:"/url",
+					type:"get",
+					data:{targetUrl:url,index:index,type:type},
+					error:function(req,err){
+						var content=$("#content");
+						$('#jsonurl').html('');
+						content.text(err);
+						
+					},
+					success:function(data,textStatus){
+						//var article_text=data._source.contenttitle+" "+data._source.content;
+						var article_text=data._source.content;
+						extractkeywords(article_text);
+						$("#source_content").html(article_text);
+						$("#source_contenttitle").html("Article: "+data._source.contenttitle);
+						console.log("1. content:"+JSON.stringify(data));
+					},
+
+				}
+				
+				);
+
+				//2. extract content & title's keywords
+				extractkeywords=function(text){
+
+                    $.ajax({ // 向服务器发出 POST 分词请求
+                        type: "post",
+                        url: "/ek",
+                        // 这里是处理 POST 分词请求的目的地址，请务必按需要来改!!!
+						data: {"text":text},//$(".left textarea, #p1, input[type=radio]:checked").serialize(),
+                        // 序列化结果是：source=待分句子&param1=第一个数&param2=第二个，$_POST['source']、$_POST['param1']这样接收皆可
+                        async: false,
+                        success: function(data) { // 这里直接返回分完的结果纯文本data，如果是json的话请先解析再赋给右侧框
+                            var result = "";
+                            var keyword = [];
+                            for (var a in data) {
+                                var s = data[a].score + "";
+                                result += data[a].word + ":" + s.substring(0, s.indexOf(".") + 3) + "/ ";
+                                if (data[a].word.length > 1 && isNaN(data[a].word)) {
+                                    keyword.push(data[a]);
+                                }
+                            }
+                            ks = keyword.sort(function(a, b) {
+                                return b.score - a.score;
+                            });
+
+                            var c = ks.length > 20 ? 20 : ks.length;
+							var qk="";
+							var sk="";
+                            for (i = 0; i < c; i++) {
+								var s=keyword[i].score+"";
+                               	qk += keyword[i].word+" "; 
+                                sk += keyword[i].word + ":" + s.substring(0, s.indexOf(".") + 3) + " / ";
+
+                            }
+							console.log("2. keywords:"+qk );
+							$("#keyword_result").html(format("{0}",sk));
+							var sourceUrl=format("http://{0}/{1}?index={2}&type={3}&keyword={4}",window.location.host,"recommander2",index,type,qk);
+							$("#jsonurl").html(format("<span>the JSON format:<a target='_blank' href='{0}'> {0}</a></span>",sourceUrl));
+							keywordSearch(qk);
+                        },
+                        error: function(XMLHttpRequest, textStatus, errorThrown) {
+							console.log("error:"+textStatus);
+                            //setTimeout(hideNotice, 3000);
+                        }
+                    });
+
+
+				}
+
+				//3. search the keywords, find the related documents.
+				keywordSearch=function(keyword){
+				$.ajax(
+				{
+					url:"/recommander2", /*recommand by multikeywords*/
+					type:"get",
+					data:{keyword:keyword,index:index,type:type},
+					error:function(req,err){
+						var content=$("#content");
+						$('#jsonurl').html('');
+						content.text(err);
+						
+					},
+					success:function(data,textStatus){
+//						alert(textStatus);
+						var content=$("#content");
+						content.html('');
+//						content.append("<div><strong>related links:</strong></div>");
+						console.log(data);
+						var rets=JSON.parse(data);
+						if(rets.error_code!=undefined){
+							content.text(data);
+						$('#jsonurl').html('');
+							return;
+						}
+						content.append("<table>");
+						for(var r in rets){
+							var s="<tr>";
+							//	s+=format("<td><a target='_blank' href='{1}'>{0}</a></td>",rets[r].title,rets[r].url);
+							s+=format("<td><a target='_blank' href='{1}'><img src='{2}' style='width:18px;height:18px;'/>{0}</a></td>",rets[r].title,rets[r].url,rets[r].thumbnail);
+							var detail=format("/detail?id={0}&targetUrl={1}&index={2}&type={3}",rets[r].id,rets[r].url,index,type);
+							s+=format("<td><span>==></span><a target='_blank' href='javascript:reload(\"{0}\")'>more detail</a></td>",rets[r].url);
+							if(rets[r].bannerid>0){
+							}
+							else{
+								s+="<td></td>";
+							}
+							s+="</tr>";
+							content.append(s);
+
+		//					content.add(JSON.stringify(rets[r]));
+		console.log(s);
+						}
+
+						content.append("</table>");
+						autoResize();
+					},
+
+				}
+				
+				);
+
+
+				}
+			
+
+			}
+			var format= function (source, params) { 
+				if (arguments.length == 1) 
+				return function () { 
+					var args = $.makeArray(arguments); 
+					args.unshift(source); 
+					return $.format.apply(this, args); 
+				}; 
+				if (arguments.length > 2 && params.constructor != Array) { 
+					params = $.makeArray(arguments).slice(1); 
+				} 
+				if (params.constructor != Array) { 
+					params = [params]; 
+				} 
+				$.each(params, function (i, n) { 
+					source = source.replace(new RegExp("\\{" + i + "\\}",
+					"g"), n); 
+				}); 
+				return source; 
+			}; 
+		});
+			var reload=function(url){
+				$("#url").val(url);
+				$("#step4div").hide();
+				$("#step2div").hide();
+				$("#step3div").hide();
+			}
+
+
+</script>
+  </head>
+  <body>
+  <!-- 顶部代码开始 -->
+  <div class="header">
+    <div class="title">3.5 demo</div>
+  </div>
+  <!-- 顶部代码结束 -->
+  <!-- 核心部分开始 -->
+  <div class="main pure-form">
+    <fieldset>
+      <legend>STEP 1: ENTER URL</legend>
+	  <input id="url" type="text" value="http://www.cosmopolitan.com.hk/beauty/hair-style/apivita-hair-loss-treatment" style="width:80%" /><button class="pure-button pure-button-primary" id="step1submit">NEXT</button>
+    </fieldset>
+    <div class="clear"></div>
+  </div>
+  <div class="main pure-form" style="width:1200px">
+  <div class="pure-form none left cell-width" id="step2div" >
+    <fieldset>
+      <legend>STEP 2: Preview 
+	  </legend>
+     <div class="pure-form" id="preview_div">
+	 <iframe src="about:_blank" id="preview" style="width:100%;height:600px;border:0;"></iframe>
+	 </div>
+  </div>
+  <div class="pure-form none left cell-width" id="step3div">
+    <fieldset>
+      <legend>STEP 3: Keyword Split & Scoring
+	  </legend>
+	  <h3 id="source_contenttitle">Article</h3>
+	  <textarea id="source_content" readonly="readonly" style="" ></textarea>
+	  <h3>Keyword</h3>
+	  <textarea id="keyword_result" readonly="readonly" style="height:120px;"></textarea>
+    </fieldset>
+    <div class="clear"></div>
+  </div>
+  <div class="pure-form none right cell-width" id="step4div" style="text-align:left">
+    <fieldset>
+      <legend>STEP 4: Related Articles</legend>
+	  <div id="content"> </div>
+	  <h1></h1>
+	  <div id="jsonurl"></div>
+  </fieldset>
+  </div>
+  </div>
+   
+  <!-- 错误提示正确 --></body>
+</html>
