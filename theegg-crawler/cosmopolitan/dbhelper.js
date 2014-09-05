@@ -4,6 +4,7 @@ var config = require('./configLoader.js');
 config.load(__dirname + '/config.json');
 
 var dbhelper = function() {
+		var countRegex=new RegExp('\/','g');
         var self = this;
         this.conn = db.createConnection(config.get('db'));
         this.domainFilter = config.get('domainFilter');
@@ -19,14 +20,20 @@ var dbhelper = function() {
 
         }
         this.addUrl = function(url, ref) {
-            if (!self.filterDomain(url)) {
+            /*if (!self.filterDomain(url)) {
                 console.log("ignore url:" + url);
                 return;
-            }
+            }*/
             sql = "INSERT IGNORE INTO `queue` SET ?";
+            //sql = "REPLACE INTO `queue` SET ?";
+			var level=url.match(countRegex).length;
+			level-=3;
+			if(level<0) level=0;
+
             self.conn.query(sql, {
                 'url': url,
-                'ref': ref
+                'ref': ref,
+				'level':level
 
             }, function(e) {
                 if (e) {
@@ -52,19 +59,22 @@ var dbhelper = function() {
             console.log("set crawler to dbhelper ");
 
         }
-        this.queueUrl = function(cb) {
-
-            if (!self.crawler) return;
-            console.log("queue url:");
-            this.conn.query('SELECT * FROM `queue` WHERE `status`=0 order by id desc LIMIT 0,100', function(e, result) {
+        this.getQueueUrl = function(cb) {
+            this.conn.query('SELECT * FROM `queue` WHERE `status`=0 order by level asc LIMIT 0,100', function(e, result) {
                 console.log("queue url:" + result.length);
-                if (result.length > 0) {
-                    for (var i = 0; i < result.length; i++) {
-                        self.crawler.queue(result[i].url);
-                    }
-                }
-                if (cb != undefined) cb(result.length);
+                if (cb != undefined) cb(result);
+				var ids="(";
+				for(var i in result){
+					ids+=result[i].id+", ";
+
+				}
+				ids+="0)";
+				self.conn.query('update queue set status=4 where id in '+ids,function(e){
+					
+					
+				});
             });
+			
 
 
         };
@@ -84,7 +94,8 @@ var dbhelper = function() {
             }
             body = self.trimBody(body);
             console.log("url %s:||| type: %s ||| body %s", url,type, body);
-            self.conn.query('INSERT IGNORE INTO `websites` SET ?', {
+			var sql='REPLACE INTO `websites` SET ?';
+            self.conn.query(sql, {
                 body: body,
                 type: type,
                 url: url,
@@ -101,6 +112,36 @@ var dbhelper = function() {
                 }
             });
         };
+		this.store=function(page,cb){
+            //console.log("url %s:||| type: %s ||| body %s", page.url,page.type, page.body);
+			var sql='REPLACE INTO `websites` SET ?';
+            self.conn.query(sql, {
+                body: page.body,
+                type: page.type,
+                url: page.url,
+                title: page.title,
+                keywords: page.keywords || '',
+                desc: page.desc || '',
+				domain:page.domain||'',
+				page_time:page.page_time,
+				thumbnail:page.thumbnail
+            }, function(e) {
+                if (e) {
+                    console.log('Error indexing page %s', page.url);
+                    console.log(e);
+                } else {
+                    console.log('Successfully indexed page %s', page.url);
+                    self.indexed++;
+                }
+				if(cb!=undefined){
+					cb();
+				}
+            });
+
+
+
+
+		};
         this.trimBody = function(str) {
             var result = str.replace(/(\s+)|(\s+)/g, " ");
             return result;

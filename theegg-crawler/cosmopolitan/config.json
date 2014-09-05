@@ -3,8 +3,19 @@
     "host": "127.0.0.1",
     "port": 3306,
     "user": "root",
-    "password": "root",
-    "database": "cosmopolitan"
+    "password": "2014@Thee99",
+    "database": "webpages"
+  },
+  "es":{
+	"host":"localhost:9200",
+	"log":"error"
+  },
+  "domain_mapping":{
+	  "default_index":"theegg",
+	  "default_type":"article"
+
+
+
   },
   "baseSite": "http://www.cosmopolitan.com.hk/",
   "domainFilter": "cosmopolitan.com.hk"

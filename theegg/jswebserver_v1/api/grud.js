@@ -1,6 +1,7 @@
 var elasticsearch = require('elasticsearch');
 var util = require('util');
 var async = require('async');
+var crypto=require('crypto');
 var client=undefined; 
 //console.log("grud: "+process.cwd());
 
@@ -20,8 +21,8 @@ exports.put=function(req,res){
 	var type=req.param('type',defaultType); 
 	var id=req.param('_id','');
 	var url=req.param('url','');
-	var content=req.param('c','');
-	var contenttitle=req.param('ct','');
+	var content=req.param('content','');
+	var contenttitle=req.param('contenttitle','');
 	var ctime=req.param('ctime',Date.now());;
 	var result={request_id:req.request_id};
 	if(url==''){
@@ -29,6 +30,11 @@ exports.put=function(req,res){
 		result.err_msg="page's url should not be null";
 		res.send(result);
 		return;
+	}
+	if(id==''){
+		var sha1=crypto.createHash('sha1');
+		sha1.update(url);
+		id=sha1.digest('hex');
 	}
 	var options=	{
 		  index: index,

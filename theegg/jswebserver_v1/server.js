@@ -9,7 +9,7 @@ var keyword = require('./api/keyword');
 var grud = require('./api/grud');
 
 search.init(config);
-keyword.init(null, null, "./data/idf.dat");
+//keyword.init(null, null, "./data/idf.dat");
 app.engine('jade', require('jade').__express);
 app.set('views', __dirname + '/views');
 app.set('view engine', 'jade');
@@ -22,7 +22,9 @@ app.set('view engine', 'jade');
    });
    */
 app.use(bodyParser.json()); // to support JSON-encoded bodies
-app.use(bodyParser.urlencoded()); // to support URL-encoded bodies
+app.use(bodyParser.urlencoded({
+	  extended: true
+}));
 app.use(function(req, res, next) {
     request_id = Date.now() + Math.random();
     req.logmsg = "";
@@ -79,6 +81,9 @@ app.all("/detail", function(req, res) {
     search.queryId(req, res);
 });
 app.all("/recommander", function(req, res) {
+    search.queryFlt(req, res);
+});
+app.all("/recommander2", function(req, res) {
     search.queryFlt(req, res);
 });
 app.all("/ek", function(req, res) {

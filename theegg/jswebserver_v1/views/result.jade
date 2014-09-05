@@ -1,8 +1,11 @@
 #result
 	each val,index in hits
-		h3#title
-			=val._source.contenttitle
-		p#content
-			=val._source.content.substr(0,128) 
-			a(href="/detail?id="+val._id+"&targetUrl=#{val._source.url}&index=#{val._index}&type=#{val._type}")   more ...  
+		div.result
+			img(src=val._source.thumbnail,alt="#{val._source.contenttitle}")
+			div.item
+				h3.title
+					=val._source.contenttitle
+				p.content
+					=val._source.content.substr(0,128)+"..."
+					a(href="/detail?id="+val._id+"&targetUrl=#{val._source.url}&index=#{val._index}&type=#{val._type}")   more 
 		

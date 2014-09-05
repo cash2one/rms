@@ -12,6 +12,7 @@ var http = require('http'),
 // Fallback on iconv-lite if we didn't succeed compiling iconv
 // https://github.com/sylvinus/node-crawler/pull/29
 var iconv, iconvLite;
+http.globalAgent.maxSockets = 1024;
 try {
     iconv = require('iconv').Iconv;
 } catch (e) {}
@@ -29,73 +30,74 @@ exports.Crawler = function(options) {
 
     //Default options
     self.options = _.extend({
-        timeout:        60000,
-        jQuery:         true,
-        jQueryUrl:      path.resolve(__dirname,"../vendor/jquery-1.8.3.min.js"),
+        timeout: 60000,
+        jQuery: true,
+        jQueryUrl: path.resolve(__dirname, "../vendor/jquery-1.8.3.min.js"),
         maxConnections: 10,
-        priorityRange:  10,
-        priority:       5,
-        retries:        3,
-        forceUTF8:      false,
-        userAgent:      "node-crawler/"+exports.VERSION,
-        autoWindowClose:true,
-        retryTimeout:   10000,
-        method:         "GET",
-        cache:          false, //false,true, [ttl?]
+        priorityRange: 10,
+        priority: 5,
+        retries: 3,
+        forceUTF8: false,
+        userAgent: "node-crawler/" + exports.VERSION,
+        autoWindowClose: true,
+        retryTimeout: 10000,
+        method: "GET",
+        cache: false,
+		customCustom:true,
+        //false,true, [ttl?]
         skipDuplicates: false,
-        onDrain:        false
-    },options);
+        onDrain: false
+    }, options);
 
     // Don't make these options persist to individual queries
     var masterOnlyOptions = ["maxConnections", "priorityRange", "onDrain"];
 
     //Setup a worker pool w/ https://github.com/coopernurse/node-pool
     self.pool = Pool({
-        name         : 'crawler',
+        name: 'crawler',
         //log        : self.options.debug,
-        max          : self.options.maxConnections,
+        max: self.options.maxConnections,
         priorityRange: self.options.priorityRange,
-        create       : function(callback) {
-           callback(1);
+        create: function(callback) {
+            callback(1);
         },
-        destroy      : function(client) {
+        destroy: function(client) {
 
         }
     });
 
     var plannedQueueCallsCount = 0;
     var queuedCount = 0;
-    self.getQueuedCount=function(){
+    self.getQueuedCount = function() {
         return queuedCount;
     }
 
     var release = function(opts) {
 
-        queuedCount--;
-        // console.log("Released... count",queuedCount,plannedQueueCallsCount);
+            queuedCount--;
+            // console.log("Released... count",queuedCount,plannedQueueCallsCount);
+            if (opts._poolRef) self.pool.release(opts._poolRef);
 
-        if (opts._poolRef) self.pool.release(opts._poolRef);
-
-        // Pool stats are behaving weird - have to implement our own counter
-        // console.log("POOL STATS",{"name":self.pool.getName(),"size":self.pool.getPoolSize(),"avail":self.pool.availableObjectsCount(),"waiting":self.pool.waitingClientsCount()});
-
-        if (queuedCount+plannedQueueCallsCount === 0) {
-            if (self.options.onDrain) self.options.onDrain();
-        }
-    };
+            // Pool stats are behaving weird - have to implement our own counter
+            // console.log("POOL STATS",{"name":self.pool.getName(),"size":self.pool.getPoolSize(),"avail":self.pool.availableObjectsCount(),"waiting":self.pool.waitingClientsCount()});
+            if (queuedCount + plannedQueueCallsCount === 0) {
+                if (self.options.onDrain) self.options.onDrain();
+            }
+        };
 
     self.onDrain = function() {};
 
     self.cache = {};
 
     var useCache = function(opts) {
-        return (opts.uri && (opts.cache || opts.skipDuplicates) && (opts.method=="GET" || opts.method=="HEAD"));
-    };
+            return (opts.uri && (opts.cache || opts.skipDuplicates) && (opts.method == "GET" || opts.method == "HEAD"));
+        };
 
     self.request = function(opts) {
 
-        // console.log("OPTS",opts);
+		opts.reqStart=new Date().getTime();
 
+        // console.log("OPTS",opts);
         if (useCache(opts)) {
 
             var cacheData = self.cache[opts.uri];
@@ -106,7 +108,7 @@ exports.Crawler = function(options) {
                 // Make sure we actually have cached data, and not just a note
                 // that the page was already crawled
                 if (_.isArray(cacheData)) {
-                    self.onContent(null,opts,cacheData[0],true);
+                    self.onContent(null, opts, cacheData[0], true);
                 } else {
                     release(opts);
                 }
@@ -116,7 +118,7 @@ exports.Crawler = function(options) {
         }
 
         if (opts.debug) {
-            console.log(opts.method+" "+opts.uri+" ...");
+            console.log(opts.method + " " + opts.uri + " ...");
         }
 
         // Cloning keeps the opts parameter clean:
@@ -124,13 +126,12 @@ exports.Crawler = function(options) {
         // property called "callback" to the first parameter
         // - keeps the query object fresh in case of a retry
         // Doing parse/stringify instead of _.clone will do a deep clone and remove functions
-
         var ropts = JSON.parse(JSON.stringify(opts));
 
-        if (!ropts.headers) ropts.headers={};
+        if (!ropts.headers) ropts.headers = {};
         if (ropts.forceUTF8) {
             if (!ropts.headers["Accept-Charset"] && !ropts.headers["accept-charset"]) ropts.headers["Accept-Charset"] = 'utf-8;q=0.7,*;q=0.3';
-            if (!ropts.encoding) ropts.encoding=null;
+            if (!ropts.encoding) ropts.encoding = null;
         }
         if (typeof ropts.encoding === 'undefined') {
             ropts.headers["Accept-Encoding"] = "gzip";
@@ -143,18 +144,21 @@ exports.Crawler = function(options) {
             ropts.proxy = ropts.proxies[0];
         }
 
-        var requestArgs = ["uri","url","qs","method","headers","body","form","json","multipart","followRedirect","followAllRedirects",
-        "maxRedirects","encoding","pool","timeout","proxy","auth","oauth","strictSSL","jar","aws"];
+        var requestArgs = ["uri", "url", "qs", "method", "headers", "body", "form", "json", "multipart", "followRedirect", "followAllRedirects", "maxRedirects", "encoding", "pool", "timeout", "proxy", "auth", "oauth", "strictSSL", "jar", "aws"];
 
 
-        var req = request(_.pick.apply(this,[ropts].concat(requestArgs)), function(error,response,body) {
+        var req = request(_.pick.apply(this, [ropts].concat(requestArgs)), function(error, response, body) {
             if (error) return self.onContent(error, opts);
 
             response.uri = opts.uri;
+			response.time={};
+			response.time.queueTime=opts.queueTime;
+			response.time.reqStart=opts.reqStart;
+			response.time.reqEnd=new Date().getTime();
 
             // Won't be needed after https://github.com/mikeal/request/pull/303 is merged
             if (response.headers['content-encoding'] && response.headers['content-encoding'].toLowerCase().indexOf('gzip') >= 0) {
-                zlib.gunzip(response.body, function (error, body) {
+                zlib.gunzip(response.body, function(error, body) {
                     if (error) return self.onContent(error, opts);
 
                     if (!opts.forceUTF8) {
@@ -163,21 +167,21 @@ exports.Crawler = function(options) {
                         response.body = body;
                     }
 
-                    self.onContent(error,opts,response,false);
+                    self.onContent(error, opts, response, false);
                 });
             } else {
-                self.onContent(error,opts,response,false);
+                self.onContent(error, opts, response, false);
             }
 
         });
     };
 
-    self.onContent = function (error, toQueue, response, fromCache) {
+    self.onContent = function(error, toQueue, response, fromCache) {
 
         if (error) {
 
             if (toQueue.debug) {
-                console.log("Error "+error+" when fetching "+toQueue.uri+(toQueue.retries?" ("+toQueue.retries+" retries left)":""));
+                console.log("Error " + error + " when fetching " + toQueue.uri + (toQueue.retries ? " (" + toQueue.retries + " retries left)" : ""));
             }
 
             if (toQueue.retries) {
@@ -192,7 +196,7 @@ exports.Crawler = function(options) {
                     }
 
                     self.queue(toQueue);
-                },toQueue.retryTimeout);
+                }, toQueue.retryTimeout);
 
             } else if (toQueue.callback) {
                 toQueue.callback(error);
@@ -201,10 +205,10 @@ exports.Crawler = function(options) {
             return release(toQueue);
         }
 
-        if (!response.body) response.body="";
+        if (!response.body) response.body = "";
 
         if (toQueue.debug) {
-            console.log("Got "+(toQueue.uri||"html")+" ("+response.body.length+" bytes)...");
+            console.log("Got " + (toQueue.uri || "html") + " (" + response.body.length + " bytes)...");
         }
 
         if (toQueue.forceUTF8) {
@@ -213,15 +217,15 @@ exports.Crawler = function(options) {
 
             if (detected && detected.encoding) {
                 if (toQueue.debug) {
-                    console.log("Detected charset "+detected.encoding+" ("+Math.floor(detected.confidence*100)+"% confidence)");
+                    console.log("Detected charset " + detected.encoding + " (" + Math.floor(detected.confidence * 100) + "% confidence)");
                 }
-                if (detected.encoding!="utf-8" && detected.encoding!="ascii") {
+                if (detected.encoding != "utf-8" && detected.encoding != "ascii") {
 
                     if (iconv) {
                         var iconvObj = new iconv(detected.encoding, "UTF-8//TRANSLIT//IGNORE");
                         response.body = iconvObj.convert(response.body).toString();
 
-                    // iconv-lite doesn't support Big5 (yet)
+                        // iconv-lite doesn't support Big5 (yet)
                     } else if (detected.encoding != "Big5") {
                         response.body = iconvLite.decode(response.body, detected.encoding);
                     }
@@ -242,7 +246,7 @@ exports.Crawler = function(options) {
             if (toQueue.cache) {
                 self.cache[toQueue.uri] = [response];
 
-            //If we don't cache but still want to skip duplicates we have to maintain a list of fetched URLs.
+                //If we don't cache but still want to skip duplicates we have to maintain a list of fetched URLs.
             } else if (toQueue.skipDuplicates) {
                 self.cache[toQueue.uri] = true;
             }
@@ -255,83 +259,87 @@ exports.Crawler = function(options) {
         // This could definitely be improved by *also* matching content-type headers
         var isHTML = response.body.match(/^\s*</);
 
-        if (isHTML && toQueue.jQuery && toQueue.method!="HEAD") {
+        if (isHTML && toQueue.jQuery && toQueue.method != "HEAD") {
 
             // TODO support for non-HTML content
             // https://github.com/joshfire/node-crawler/issues/9
-            try {
-                var jsd = function(src) {
-                    var env = jsdom.env({
-                        "url":toQueue.uri,
-                        "html":response.body,
-                        "src":src,
-                        "done":function(errors,window) {
+            if (toQueue.customCustom) {
+				toQueue.callback(null,response);
+				return release(toQueue);
 
-                          var callbackError = false;
+            } else {
+                try {
+                    var jsd = function(src) {
+                            var env = jsdom.env({
+                                "url": toQueue.uri,
+                                "html": response.body,
+                                "src": src,
+                                "done": function(errors, window) {
+									var callbackError = false;
+                                    try {
 
-                          try {
+                                        if (errors) {
+                                            toQueue.callback(errors);
+                                        } else {
+                                            response.window = window;
+                                            toQueue.callback(null, response, window.jQuery);
+                                        }
 
-                              if (errors) {
-                                toQueue.callback(errors);
-                              } else {
-                                response.window = window;
-                                toQueue.callback(null,response,window.jQuery);
-                              }
+                                    } catch (e) {
+                                        callbackError = e;
+                                    }
 
-                          } catch (e) {
-                            callbackError = e;
-                          }
+                                    // Free jsdom memory
+                                    if (toQueue.autoWindowClose) {
+                                        try {
+                                            window.close();
+                                            window = null;
+                                        } catch (err) {
+                                            console.log("Couldn't window.close : " + err);
+                                        }
+                                        response.body = null;
+                                        response = null;
+                                    }
 
-                          // Free jsdom memory
-                          if (toQueue.autoWindowClose) {
-                            try {
-                              window.close();
-                              window = null;
-                            } catch (err) {
-                              console.log("Couldn't window.close : "+err);
-                            }
-                            response.body = null;
-                            response = null;
-                          }
+                                    release(toQueue);
 
-                          release(toQueue);
+                                    if (callbackError) throw callbackError;
+                                }
+                            });
+                        };
 
-                          if (callbackError) throw callbackError;
-                        }
-                    });
-                };
+                    // jsdom doesn't support adding local scripts,
+                    // We have to read jQuery from the local fs
+                    if (toQueue.jQueryUrl.match(/^(file\:\/\/|\/)/)) {
 
-                // jsdom doesn't support adding local scripts,
-                // We have to read jQuery from the local fs
-                if (toQueue.jQueryUrl.match(/^(file\:\/\/|\/)/)) {
-
-                    // TODO cache this
-                    fs.readFile(toQueue.jQueryUrl.replace(/^file\:\/\//,""),"utf-8",function(err,jq) {
-                        if (err) {
-                            toQueue.callback(err);
-                            release(toQueue);
-                        } else {
-                            try {
-                                jsd([jq]);
-                            } catch (e) {
-                                toQueue.callback(e);
+                        // TODO cache this
+                        fs.readFile(toQueue.jQueryUrl.replace(/^file\:\/\//, ""), "utf-8", function(err, jq) {
+                            if (err) {
+                                toQueue.callback(err);
                                 release(toQueue);
+                            } else {
+                                try {
+                                    jsd([jq]);
+                                } catch (e) {
+                                    toQueue.callback(e);
+                                    release(toQueue);
+                                }
                             }
-                        }
-                    });
-                } else {
-                    jsd([toQueue.jQueryUrl]);
+                        });
+                    } else {
+                        jsd([toQueue.jQueryUrl]);
+                    }
+
+                } catch (e) {
+
+                    toQueue.callback(e);
+                    release(toQueue);
                 }
-
-            } catch (e) {
-
-                toQueue.callback(e);
-                release(toQueue);
             }
 
         } else {
 
-            toQueue.callback(null,response);
+            toQueue.callback(null, response);
             release(toQueue);
         }
 
@@ -341,7 +349,7 @@ exports.Crawler = function(options) {
 
         //Did we get a list ? Queue all the URLs.
         if (_.isArray(item)) {
-            for (var i=0;i<item.length;i++) {
+            for (var i = 0; i < item.length; i++) {
                 self.queue(item[i]);
             }
             return;
@@ -349,30 +357,34 @@ exports.Crawler = function(options) {
 
         queuedCount++;
 
-        var toQueue=item;
+        var toQueue = item;
 
         //Allow passing just strings as URLs
         if (_.isString(item)) {
-            toQueue = {"uri":item};
+            toQueue = {
+                "uri": item
+            };
         }
 
-        _.defaults(toQueue,self.options);
+
+        _.defaults(toQueue, self.options);
 
         // Cleanup options
-        _.each(masterOnlyOptions,function(o) {
+        _.each(masterOnlyOptions, function(o) {
             delete toQueue[o];
         });
+		toQueue.queueTime=new Date().getTime();
 
         // If duplicate skipping is enabled, avoid queueing entirely for URLs we already crawled
         if (toQueue.skipDuplicates && self.cache[toQueue.uri]) {
-          return release(toQueue);
+            return release(toQueue);
         }
 
         self.pool.acquire(function(err, poolRef) {
 
             //TODO - which errback to call?
             if (err) {
-                console.error("pool acquire error:",err);
+                console.error("pool acquire error:", err);
                 return release(toQueue);
             }
 
@@ -381,27 +393,29 @@ exports.Crawler = function(options) {
             // We need to check again for duplicates because the cache might have
             // been completed since we queued self task.
             if (toQueue.skipDuplicates && self.cache[toQueue.uri]) {
-              return release(toQueue);
+                return release(toQueue);
             }
 
             //Static HTML was given, skip request
             if (toQueue.html) {
-                self.onContent(null,toQueue,{body:toQueue.html},false);
+                self.onContent(null, toQueue, {
+                    body: toQueue.html
+                }, false);
                 return;
             }
 
-                console.log("acquire:"+toQueue.uri);
+            console.log("acquire:" + toQueue.uri);
             //Make a HTTP request
-            if (typeof toQueue.uri=="function") {
+            if (typeof toQueue.uri == "function") {
                 toQueue.uri(function(uri) {
-                    toQueue.uri=uri;
+                    toQueue.uri = uri;
                     self.request(toQueue);
                 });
             } else {
                 self.request(toQueue);
             }
 
-        },toQueue.priority);
+        }, toQueue.priority);
     };
 
 };
