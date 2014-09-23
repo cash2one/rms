@@ -4,6 +4,7 @@ var async = require('async');
 var client = undefined;
 var crypto=require("crypto");
 var http = require('http');
+var ejs=require("../lib/elastic");
 /*
    new elasticsearch.Client({
    host: 'localhost:9200',
@@ -127,30 +128,25 @@ exports.flt = function(pageContent,options,callback) {
                     _source: ["contenttitle", "url","thumbnail"],
                     from: 0,
                     size: 20,
-                    query: {
-
-                        //"fuzzy_like_this" : {
-                        "more_like_this": {
-                            "fields": ["content", "contenttitle"],
-                            "max_query_terms": 10,
-                            "like_text": pageContent
-                        }
-                    }
-
                 }
             };
-            if (type.indexOf(",") > 0) {
-                queryBody.body.query.fuzzy_like_this = queryBody.body.query.more_like_this;
-                delete queryBody.body.query.more_like_this;
-            }
-			if(fltType=="keywordonly"){
-				delete queryBody.body.query.more_like_this;
-				queryBody.body.query.multi_match={
-				"query":pageContent,
-				"fields":["contenttitle","content"],
-				};
-
+			var body=ejs.BoolQuery().must(ejs.QueryStringQuery(pageContent));
+			var range=parseInt(req.param('range',0));
+			
+			if(range>0){
+				var rq={};
+				var now=Date.now()/1000;
+				var from=now-range*24*60*60;
+				body=body.must(ejs.RangeQuery("article_time").from(from).to(now));
 			}
+			var domain=req.param('domain','');
+			if(domain!=''){
+				body=body.must(ejs.TermQuery("domain",domain));
+			}
+			console.log("..."+JSON.stringify(body));
+
+			queryBody.body=ejs.Request().query(body);
+			//console.log("2.."+JSON.stringify(queryBody.body));
             client.search(queryBody).then(function(resp) {
                 req.etime = Date.now();
                 req.appendlog("finish queryFlt cost:%d ms", (req.etime - req.stime));
@@ -248,29 +244,42 @@ exports.showwidget=function(req,res){
 	if(maxc>7){
 		maxc=7;
 	}
-	options={index:index,type:type,req:req,fltType:"content"};
-	exports.flt(content,options,function(urls,hits){
-		exports.revive(urls,hits,options,function(result){
-			console.log(JSON.stringify(result));
-			var nr=[];
-			for(var i in result){
-				if(result[i].title=='' || result[i].thumbnail=='' || result[i].url==''){
-					continue;
-				}
-				if(result[i].title.length>24){
-					result[i].title=result[i].title.substr(0,23)+"...";//substring(result[i].title,0,20)+"...";
-				}
-				nr.push(result[i]);
+	options={index:index,type:type,req:req,fltType:"keywordonly"};
+	exports.requestKeyword(content,function(error,result){
+			if(error>0){
+				res.status(500).end("ddd");
+				return;
+			}
+			var k='';
+			var len=result.length>20?20:result.length;
+			for(var i=0;i<len;i++){
+				k+=" "+result[i].word;
 
 			}
-			if(maxc<nr.length){
-				nr.splice(maxc-2,nr.length-maxc);
-			}
-			delete result;
-			res.render("plugin_thumb",{result:nr});
 
-		});
+			exports.flt(k,options,function(urls,hits){
+				exports.revive(urls,hits,options,function(result){
+					console.log(JSON.stringify(result));
+					var nr=[];
+					for(var i in result){
+						if(result[i].title=='' || result[i].thumbnail=='' || result[i].url==''){
+							continue;
+						}
+						if(result[i].title.length>24){
+							result[i].title=result[i].title.substr(0,23)+"...";//substring(result[i].title,0,20)+"...";
+						}
+						nr.push(result[i]);
 
+					}
+					if(maxc<nr.length){
+						nr.splice(maxc-2,nr.length-maxc);
+					}
+					delete result;
+					res.render("plugin_thumb",{result:nr});
+
+				});
+
+			});
 	});
 
 };
@@ -399,6 +408,49 @@ exports.queryKw = function(req, res) {
 		   */
     });
 };
+exports.requestKeyword=function(text,callback){
+
+    var data = text.replace(/\"/g, '\'').replace(/[\r\n\(\)\[\]]/g, '');
+    var opt = {
+        method: "POST",
+        host: "127.0.0.1",
+        port: 11200,
+        path: "/",
+        headers: {
+            "Content-Length": data.length
+        }
+    }
+    console.log("start req keyword: " + JSON.stringify(opt));
+    var keywordreq = http.request(opt, function(serverFeedback) {
+        if (serverFeedback.statusCode == 200) {
+            var body = "";
+            serverFeedback.on('data', function(data) {
+                body += data;
+            }).on('end', function() {
+                var tokens = JSON.parse(body.replace(/[\r\t\n\\\/]/g, ""));
+                var arr = [];
+                for (var t in tokens) {
+					var words=tokens[t].split(":");
+					if(words.length>0){
+                    	arr.push({word:words[0],score:words[1]});
+					}
+                }
+				callback(0,arr);
+                //res.send(arr);
+            });
+
+        } else {
+            callback(50013,JSON.stringify({
+                request_id: req.request_id,
+                msg: errmsg,
+                error_code: 50013
+            }));
+        }
+    });
+    keywordreq.write(data);
+    keywordreq.end();
+
+	};
 exports.extractKeyword = function(req, res, keyword) {
 
     index = req.param('index', indexConfig.index);
@@ -421,9 +473,15 @@ exports.extractKeyword = function(req, res, keyword) {
         });
         return;
 
-
-
     }
+	exports.requestKeyword(text,function(error,result){
+		if(error>0){
+			res.send(result);
+		}
+		res.send(result);
+
+	});
+	/*
     var data = text.replace(/\"/g, '\'').replace(/[\r\n\(\)\[\]]/g, '');
     var opt = {
         method: "POST",
@@ -466,10 +524,7 @@ exports.extractKeyword = function(req, res, keyword) {
     });
     keywordreq.write(data);
     keywordreq.end();
-
-
-
-
+	*/
 };
 
 exports.queryId = function(req, res) {
