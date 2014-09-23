@@ -86,6 +86,9 @@ app.all("/recommander", function(req, res) {
 app.all("/recommander2", function(req, res) {
     search.queryFlt(req, res);
 });
+app.all("/showwidget",function(req,res){
+	search.showwidget(req,res);
+});
 app.all("/ek", function(req, res) {
     search.extractKeyword(req, res, keyword);
 

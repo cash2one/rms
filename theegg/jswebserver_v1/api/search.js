@@ -2,6 +2,7 @@ var elasticsearch = require('elasticsearch');
 var util = require('util');
 var async = require('async');
 var client = undefined;
+var crypto=require("crypto");
 var http = require('http');
 /*
    new elasticsearch.Client({
@@ -30,24 +31,45 @@ exports.init = function(conf) {
     indexConfig.index = search.index;
     indexConfig.type = search.type;
 };
+
+exports.hash=function(val){
+	var sha1=crypto.createHash('sha1');
+	sha1.update(val);
+	return sha1.digest('hex');
+}
 exports.queryUrl = function(req, res) {
     index = req.param('index', indexConfig.index);
     type = req.param('type', indexConfig.type);
-    url = req.param('targetUrl', '');
+    var url = req.param('targetUrl', '');
     if (url == '') {
-        res.send(404);
+        //res.send(404);
+		res.status(404).end();
         return;
     }
-    console.log("targetUrl: %s", req.query.url);
+	url=encodeURI(decodeURI(decodeURI(url)));
+
+	var hashid=exports.hash(url);
+    console.log("targetUrl: %s, _id %s ", url,hashid);
     client.search({
         index: index,
         type: type,
         body: {
             query: {
-                match: {
-                    url: url
-                }
+				bool:{
+				should:[
+				{
+					term : {
+						_id:hashid
+					}
+				},
+				{
+					term: {
+						url: url
+					}
+				}
+			]
             }
+			}
         }
 
     }).then(function(resp) {
@@ -93,8 +115,11 @@ exports.queryMlt = function(req, res) {
     });
 
 };
-exports.queryFlt = function(req, res) {
-    var flt = function(pageContent,keywordonly) {
+exports.flt = function(pageContent,options,callback) {
+			var index=options.index;
+			var type=options.type;
+			var fltType=options.fltType;
+			var req=options.req;
             queryBody = {
                 index: index,
                 type: type,
@@ -118,7 +143,7 @@ exports.queryFlt = function(req, res) {
                 queryBody.body.query.fuzzy_like_this = queryBody.body.query.more_like_this;
                 delete queryBody.body.query.more_like_this;
             }
-			if(keywordonly==true){
+			if(fltType=="keywordonly"){
 				delete queryBody.body.query.more_like_this;
 				queryBody.body.query.multi_match={
 				"query":pageContent,
@@ -127,27 +152,28 @@ exports.queryFlt = function(req, res) {
 
 			}
             client.search(queryBody).then(function(resp) {
-                etime = Date.now();
-                req.appendlog("finish queryFlt cost:%d ms", (etime - stime));
+                req.etime = Date.now();
+                req.appendlog("finish queryFlt cost:%d ms", (req.etime - req.stime));
                 //			res.send(resp.hits.hits);
                 var hits = resp.hits.hits;
                 var urls = [];
                 var uq = [];
                 for (var h in hits) {
+					//filter duplicate urls
                     var title = hits[h]._source.contenttitle;
                     if (uq[title] > 0) continue;
                     uq[title] = 1;
                     urls.push(hits[h]._source.url);
                     //				result.push({'id':hits[h]._id,'url':hits[h]._source.url,title:hits[h]._source.contenttitle,score:hits[h]._score});
                 }
-                revive(urls, hits);
-				//console.log(JSON.stringify(hits));
+                //revive(urls, hits);
+				callback(urls,hits);
 
             });
         };
-    var result = [];
-    var revive = function(urls, hits) {
+exports.revive = function(urls, hits,options,callback) {
             //	console.log(JSON.stringify(urls));
+    		var result = [];
             var arr_url = [];
             var ind = {
                 index: 'theegg_revive',
@@ -201,23 +227,63 @@ exports.queryFlt = function(req, res) {
                         bannerid: ub[url]
                     });
                 }
-                var s = JSON.stringify(result);
 				//console.log(s);
                 delete uq;
-                res.send(s);
+       //         res.send(s);
 
+				callback(result);
             });
 
 
 
         };
-    stime = Date.now();
+exports.showwidget=function(req,res){
+    index = req.param('index', indexConfig.index);
+    type = req.param('type', indexConfig.type);
+    var content= req.param('content', "");
+	var maxc=req.param("maxc",4);
+	if(maxc<4){
+		maxc=4
+	}
+	if(maxc>7){
+		maxc=7;
+	}
+	options={index:index,type:type,req:req,fltType:"content"};
+	exports.flt(content,options,function(urls,hits){
+		exports.revive(urls,hits,options,function(result){
+			console.log(JSON.stringify(result));
+			var nr=[];
+			for(var i in result){
+				if(result[i].title=='' || result[i].thumbnail=='' || result[i].url==''){
+					continue;
+				}
+				if(result[i].title.length>24){
+					result[i].title=result[i].title.substr(0,23)+"...";//substring(result[i].title,0,20)+"...";
+				}
+				nr.push(result[i]);
+
+			}
+			if(maxc<nr.length){
+				nr.splice(maxc-2,nr.length-maxc);
+			}
+			delete result;
+			res.render("plugin_thumb",{result:nr});
+
+		});
+
+	});
+
+};
+exports.queryFlt = function(req, res) {
+    req.stime = Date.now();
     //	req.appendlog("queryFlt: %s", req.query.url);
+	var options={};
     id = req.query.id;
     index = req.param('index', indexConfig.index);
     type = req.param('type', indexConfig.type);
     var url = req.param('targetUrl', "");
     var keyword = req.param('keyword', "");
+	options={index:index,type:type,req:req};
     if (url.length < 1) {
         if (keyword == "") {
             var m = util.format("resource not found: %s", url)
@@ -229,7 +295,13 @@ exports.queryFlt = function(req, res) {
         } else {
 			//search by keywords
 			req.appendlog("query multi keywords by flt");
-			flt(keyword,true);
+			options.fltType="keywordonly";
+			exports.flt(keyword,options,function(urls,hits){
+				exports.revive(urls,hits,options,function(result){
+					res.send(JSON.stringify(result));
+				});
+				
+			});
 
         }
     } else {
@@ -254,7 +326,13 @@ exports.queryFlt = function(req, res) {
                 var title = resp.hits.hits[0]._source.contenttitle;
                 req.appendlog("id: %s, title: %s, body: %s", id, title, body);
                 //	res.send(resp.hits.hits[0]);
-                flt(title + "  " + body);
+				options.fltType="content"
+               exports.flt(title + "  " + body,options,function(urls,hits){
+					exports.revive(urls,hits,options,function(result){
+						res.send(JSON.stringify(result));
+					});
+					
+				});
             } else {
                 var m = util.format("Not Found Url: %s", url);
                 req.appendlog(m);
