@@ -8,7 +8,7 @@ crawler.singleUrl("http://www.cosmopolitan.com.hk/love-sex/you-him/love-test-mr-
 crawler.singleUrl("http://www.cosmopolitan.com.hk/lifestyle/self-career/taboo-30s");
 crawler.singleUrl("http://www.cosmopolitan.com.hk/entertainment/star-news/g-dragon-harvey-nichols-event");
 crawler.singleUrl("http://www.cosmopolitan.com.hk/bride/glam/wedding-facebook");
-crawler.singleUrl("http://www.cosmopolitan.com.hk/horoscopes/hot-topics/what-you-are-lack");
 crawler.crawler("http://www.cosmopolitan.com.hk/beauty/beauty-news/swisscelin");
 */
+//crawler.singleUrl("http://www.cosmopolitan.com.hk/horoscopes/hot-topics/what-you-are-lack");
 crawler.crawler("http://www.cosmopolitan.com.hk/");

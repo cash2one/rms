@@ -28,6 +28,15 @@ var filters = [
 
 }, 
 {
+    "domain_filter": ["cosmopolitan.com.hk\/horoscopes\/hot-topics"],
+	"domain":"cosmopolitan.com.hk",
+    "body_filter": "div[class='field field-body']",
+    "type": "article",
+    "title_filter": "div[class='field field-title'] > h1",
+
+}, 
+
+{
     "domain_filter": "cosmopolitan.com.hk\/come-n-share\/",
     "body_filter": "div#content-area div.content",
 	"domain":"cosmopolitan.com.hk",
