@@ -1,0 +1,23 @@
+#relatecontent{
+	display:inline;
+	width:780px;
+
+}
+.item{
+	display:block;
+	float:left;
+	width:72px;
+	margin-left:12px;
+
+}
+.item img{
+	width:64px;
+	height:64px;
+	vertical-align:middle;
+
+}
+.item a{
+	width:72px;
+	font-size:12px;
+
+}

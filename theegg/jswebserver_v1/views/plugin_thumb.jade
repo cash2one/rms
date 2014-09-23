@@ -1,0 +1,11 @@
+html
+	head
+		title
+		link(rel='stylesheet', href='/views/css/plugin.thumbnail.css')
+	body
+		div#relatecontent
+			each r in result
+				div.item
+					a(href='#{r.url}' target='_blank')
+						img(src='#{r.thumbnail}')
+						= r.title
