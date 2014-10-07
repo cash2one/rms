@@ -1,0 +1,4 @@
+*.log
+*.log_*
+*config.json
+nohup.out

@@ -87,6 +87,8 @@ app.all("/recommander2", function(req, res) {
     search.queryFlt(req, res);
 });
 app.all("/showwidget",function(req,res){
+//	var c=req.param('content','');
+//	console.log('content: decode :%s, no decode: %s',decodeURI(c),c);
 	search.showwidget(req,res);
 });
 app.all("/ek", function(req, res) {

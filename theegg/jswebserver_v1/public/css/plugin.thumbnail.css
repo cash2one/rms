@@ -1,3 +1,7 @@
+body{
+ overflow-x : hidden;  
+ overflow-y : hidden;
+}
 #relatecontent{
 	display:inline;
 	width:780px;

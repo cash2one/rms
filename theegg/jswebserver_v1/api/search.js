@@ -131,6 +131,10 @@ exports.flt = function(pageContent,options,callback) {
                 }
             };
 			var body=ejs.BoolQuery().must(ejs.QueryStringQuery(pageContent));
+			//var body=ejs.BoolQuery().should(ejs.MoreLikeThisQuery(['contenttitle','title'],options.pageContent));
+			//body.boost(3);
+			//body=body.should(ejs.QueryStringQuery(options.keywords));
+			body.boost(2);
 			var range=parseInt(req.param('range',0));
 			
 			if(range>0){
@@ -145,7 +149,7 @@ exports.flt = function(pageContent,options,callback) {
 			}
 			console.log("..."+JSON.stringify(body));
 
-			queryBody.body=ejs.Request().query(body);
+			queryBody.body=ejs.Request().query(body).size(20);
 			//console.log("2.."+JSON.stringify(queryBody.body));
             client.search(queryBody).then(function(resp) {
                 req.etime = Date.now();
@@ -236,33 +240,44 @@ exports.revive = function(urls, hits,options,callback) {
 exports.showwidget=function(req,res){
     index = req.param('index', indexConfig.index);
     type = req.param('type', indexConfig.type);
-    var content= req.param('content', "");
+    var content= req.param("content", "");
+	req.appendlog('content:'+content);
 	var maxc=req.param("maxc",4);
+	var title=req.param("title","");
 	if(maxc<4){
 		maxc=4
 	}
 	if(maxc>7){
 		maxc=7;
 	}
+	//content=decodeURI(content);
 	options={index:index,type:type,req:req,fltType:"keywordonly"};
-	exports.requestKeyword(content,function(error,result){
+	exports.requestKeyword(title+" "+content,function(error,result){
 			if(error>0){
-				res.status(500).end("ddd");
+				res.status(500).end("Internal Error: 50031");
 				return;
 			}
 			var k='';
-			var len=result.length>20?20:result.length;
+			var MaxKeyword=9;
+			var len=result.length>MaxKeyword?MaxKeyword:result.length;
 			for(var i=0;i<len;i++){
 				k+=" "+result[i].word;
 
 			}
+			req.appendlog("keyword len: "+len+"keyword:"+k);
+			options.keywords=k;
+			options.pageContent=title+' '+content;
 
-			exports.flt(k,options,function(urls,hits){
+//			exports.flt(k,options,function(urls,hits){
+			exports.flt(title+" "+content,options,function(urls,hits){
 				exports.revive(urls,hits,options,function(result){
 					console.log(JSON.stringify(result));
 					var nr=[];
 					for(var i in result){
 						if(result[i].title=='' || result[i].thumbnail=='' || result[i].url==''){
+							continue;
+						}
+						if(result[i].title==title){
 							continue;
 						}
 						if(result[i].title.length>24){
@@ -275,6 +290,7 @@ exports.showwidget=function(req,res){
 						nr.splice(maxc-2,nr.length-maxc);
 					}
 					delete result;
+					
 					res.render("plugin_thumb",{result:nr});
 
 				});

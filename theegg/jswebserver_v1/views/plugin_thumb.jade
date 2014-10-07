@@ -3,6 +3,11 @@ html
 		title
 		link(rel='stylesheet', href='/views/css/plugin.thumbnail.css')
 	body
+- var RA=''
+- if(result.length>0){
+- RA='Related articles';
+- }
+		div #{RA}
 		div#relatecontent
 			each r in result
 				div.item
