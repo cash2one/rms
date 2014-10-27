@@ -1,0 +1,42 @@
+{
+	"search": {
+		"host": "localhost",
+		"port": 9200,
+		"index": "testindex",
+		"type": "testtype"
+	},
+	"domains":{
+		"searchblog.asia":"searchasia",
+		"cosmopolitan.com.hk":"cosmopolitan",
+		"default":"default"
+	},
+  "db": {
+    "host": "127.0.0.1",
+    "port": 3306,
+    "user": "abcd",
+    "password": "passwd",
+    "database": "dbweb"
+  },
+  "revive_db": {
+    "host": "127.0.0.1",
+    "port": 3306,
+    "user": "abcd",
+    "password": "passwd",
+    "database": "rvdb",
+	"multipleStatements":true
+
+  },
+  "es":{
+	"host":"localhost:9200",
+	"log":"error"
+  },
+  "domain_mapping":{
+	  "default_index":"testindex",
+	  "default_type":"testtype"
+  },
+  "baseSite": "http://www.google.com.hk/",
+  "domainFilter": "www.google.com.hk",
+	"analyzer": "ik",
+	"default": "nothing"
+
+}

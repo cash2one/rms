@@ -4,7 +4,10 @@ var async = require('async');
 var client = undefined;
 var crypto=require("crypto");
 var http = require('http');
+var localUtils=require('../utils');
 var ejs=require("../lib/elastic");
+var rvdb=require('../lib/rv_dbhelper.js');
+var rvhelper=new rvdb();
 /*
    new elasticsearch.Client({
    host: 'localhost:9200',
@@ -20,6 +23,14 @@ var indexConfig = {
 };
 
 var config = {};
+exports.getESClient=function(){
+	return client;
+
+}
+exports.getDefaultConf=function(){
+	return indexConfig;
+
+}
 exports.init = function(conf) {
     if (client != undefined) return;
     config = conf;
@@ -130,10 +141,10 @@ exports.flt = function(pageContent,options,callback) {
                     size: 20,
                 }
             };
-			var body=ejs.BoolQuery().must(ejs.QueryStringQuery(pageContent));
+			var body=ejs.BoolQuery().must(ejs.QueryStringQuery(options.keywords));
 			//var body=ejs.BoolQuery().should(ejs.MoreLikeThisQuery(['contenttitle','title'],options.pageContent));
 			//body.boost(3);
-			//body=body.should(ejs.QueryStringQuery(options.keywords));
+		//	body=body.should(ejs.QueryStringQuery(options.keywords));
 			body.boost(2);
 			var range=parseInt(req.param('range',0));
 			
@@ -171,6 +182,45 @@ exports.flt = function(pageContent,options,callback) {
 
             });
         };
+exports.merge_rv_id=function(urls,hits,options,callback){
+
+            //	console.log(JSON.stringify(urls));
+    		var result = [];
+            var arr_url = [];
+            rvhelper.getBannerid(urls, function(err, ret) {
+
+				var result=[];
+				var uq={};
+
+                for (var h in hits) {
+                    var title = hits[h]._source.contenttitle;
+                    var url = hits[h]._source.url;
+                    if (uq[title] > 0) continue;
+                    uq[title] = 1;
+                    var bannerid = 0;
+                    if (ret[url] > 0) {
+                        bannerid = ret[url];
+                    }
+                    result.push({
+                        'id': hits[h]._id,
+                        'url': hits[h]._source.url,
+                        title: hits[h]._source.contenttitle,
+                        score: hits[h]._score,
+						thumbnail:hits[h]._source.thumbnail,
+                        bannerid:bannerid 
+                    });
+                }
+				//console.log(s);
+                delete uq;
+       //         res.send(s);
+
+				callback(result);
+
+				console.log("ret with banner id %s",JSON.stringify(result));
+            });
+
+
+};
 exports.revive = function(urls, hits,options,callback) {
             //	console.log(JSON.stringify(urls));
     		var result = [];
@@ -264,19 +314,24 @@ exports.showwidget=function(req,res){
 				k+=" "+result[i].word;
 
 			}
-			req.appendlog("keyword len: "+len+"keyword:"+k);
+			console.log("keyword len: "+len+"keyword:"+k);
 			options.keywords=k;
 			options.pageContent=title+' '+content;
 
 //			exports.flt(k,options,function(urls,hits){
 			exports.flt(title+" "+content,options,function(urls,hits){
-				exports.revive(urls,hits,options,function(result){
+				//exports.revive(urls,hits,options,function(result){
+				exports.merge_rv_id(urls,hits,options,function(result){
 					console.log(JSON.stringify(result));
 					var nr=[];
 					for(var i in result){
-						if(result[i].title=='' || result[i].thumbnail=='' || result[i].url==''){
+						if(result[i].title=='' || result[i].url==''){
 							continue;
 						}
+						var baseurl="http://beta4ad2.theegg.com/www/delivery/ck.php?oaparams=2__bannerid=%s__zoneid=1__cb=fc2300c682__oadest=%s";
+						var burl=util.format(baseurl,result[i].bannerid,result[i].url);
+						
+						result[i].url=burl;
 						if(result[i].title==title){
 							continue;
 						}
@@ -287,9 +342,29 @@ exports.showwidget=function(req,res){
 
 					}
 					if(maxc<nr.length){
-						nr.splice(maxc-2,nr.length-maxc);
+						nr.splice(maxc-1,nr.length-maxc);
+						for(var i=maxc;i<nr.length;i++){
+							// nr[i];
+						}
 					}
 					delete result;
+					var imps=[];
+					var t=new Date();
+					var h=util.format("%s-%s-%s %d:00:00",t.getFullYear(),t.getMonth()+1,t.getDate(),t.getHours()); 
+					for(var i in nr){
+						if(nr[i].bannerid>0){
+							imps.push({
+								interval_start:h,creative_id:nr[i].bannerid,zone_id:1,count:1
+							
+							});
+						}
+
+
+					}
+					rvhelper.updateImpression(imps,function(err,result){
+
+					});
+					
 					
 					res.render("plugin_thumb",{result:nr});
 
@@ -321,6 +396,8 @@ exports.queryFlt = function(req, res) {
 			//search by keywords
 			req.appendlog("query multi keywords by flt");
 			options.fltType="keywordonly";
+			options.keywords=keyword;
+			options.pageContent=keyword;
 			exports.flt(keyword,options,function(urls,hits){
 				exports.revive(urls,hits,options,function(result){
 					res.send(JSON.stringify(result));
@@ -447,7 +524,7 @@ exports.requestKeyword=function(text,callback){
                 var arr = [];
                 for (var t in tokens) {
 					var words=tokens[t].split(":");
-					if(words.length>0){
+					if(words.length>0 && localUtils.isWord(words[0])){
                     	arr.push({word:words[0],score:words[1]});
 					}
                 }

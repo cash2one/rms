@@ -1,0 +1,22 @@
+{
+  "db": {
+    "host": "127.0.0.1",
+    "port": 3306,
+    "user": "abcd",
+    "password": "passwd",
+    "database": "dbweb"
+  },
+  "es":{
+	"host":"localhost:9200",
+	"log":"error"
+  },
+  "domain_mapping":{
+	  "default_index":"testindex",
+	  "default_type":"testtype"
+
+
+
+  },
+  "baseSite": "http://www.google.com.hk/",
+  "domainFilter": "google.com.hk"
+}

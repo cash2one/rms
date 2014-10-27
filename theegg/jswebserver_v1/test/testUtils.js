@@ -1,0 +1,14 @@
+var utils=require('../utils');
+console.log("not a word!");
+console.log(utils.isWord("ぴ●ОⅤ┏┓の"));
+console.log(utils.isWord("$a"));
+console.log(utils.isWord("a$a"));
+console.log(utils.isWord("#1"));
+console.log(utils.isWord("1#1"));
+console.log(utils.isWord("正则表#*&$(达式"));
+console.log(utils.isWord("龍貓#$*@&%^*%^*&@$*"));
+console.log("is word!");
+console.log(utils.isWord("123"));
+console.log(utils.isWord("abc"));
+console.log(utils.isWord("正则表达式"));
+console.log(utils.isWord("龍貓"));
