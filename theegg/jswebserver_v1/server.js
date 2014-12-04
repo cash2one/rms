@@ -7,8 +7,10 @@ var search = require('./api/search.js');
 var util = require('util');
 var keyword = require('./api/keyword');
 var grud = require('./api/grud');
+var pushplugin=require('./api/push_plugin');
 
 search.init(config);
+pushplugin.init(search);
 //keyword.init(null, null, "./data/idf.dat");
 app.engine('jade', require('jade').__express);
 app.set('views', __dirname + '/views');
@@ -31,14 +33,20 @@ app.use(function(req, res, next) {
     req.request_id = request_id;
     req.stime = Date.now();
     req.appendlog = function(format) {
+		console.log(util.format.apply(format,arguments));
         req.logmsg += "[" + util.format.apply(format, arguments) + "]";
     };
-    req.on('end', function() {
-
+	var printlog=function(){
         req.etime = Date.now();
         var m = util.format("request_id:%d,msg:[%s],time cost:[%d ms]", req.request_id, req.logmsg, (req.etime - req.stime));
         logger.info(m);
         console.log(m);
+	}
+    req.on('end', function() {
+		printlog();
+    });
+    req.on('error', function() {
+		printlog();
     });
     req.appendlog("ClientIP:" + req.ip);
 
@@ -87,10 +95,22 @@ app.all("/recommander2", function(req, res) {
     search.queryFlt(req, res);
 });
 app.all("/showwidget",function(req,res){
-//	var c=req.param('content','');
-//	console.log('content: decode :%s, no decode: %s',decodeURI(c),c);
+	//console.log("content %s",req.param('content',''));
 	search.showwidget(req,res);
 });
+app.all("/pluginpost",function(req,res){
+//	console.log("body %s",unescape(req.param('posts','')));
+	pushplugin.bulkIndex(req,res);
+});
+app.all("/delete_cms_article",function(req,res){
+//	console.log("body %s",unescape(req.param('posts','')));
+	console.log('start delete');
+	pushplugin.deleteByUrl(req,res);
+});
+app.all("/maxpostid",function(req,res){
+	pushplugin.getMaxPostId(req,res);
+});
+
 app.all("/ek", function(req, res) {
     search.extractKeyword(req, res, keyword);
 

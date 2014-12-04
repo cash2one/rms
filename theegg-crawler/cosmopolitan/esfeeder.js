@@ -106,7 +106,7 @@ var feeder= function() {
 				id=this.hash(records[i].url);
 				var action={index:{_index:default_index,_type:ty,_id:id}};
 				var doc={content:r.content,contenttitle:r.contenttitle,article_time:r.article_time,url:r.url,url_id:r.url_id,
-					thumbnail:r.thumbnail,domain:r.domain};
+					thumbnail:r.thumbnail,domain:r.domain,post_id:0};
 				body.push(action);
 				body.push(doc);
 			}

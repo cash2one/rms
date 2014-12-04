@@ -1,4 +1,6 @@
-curl -XPUT localhost:9200/theegg_time2 -d '{
+
+curl -XDELETE localhost:9200/theegg_time5
+curl -XPUT localhost:9200/theegg_time5 -d '{
     "settings" : {
         "analysis" : {
             "analyzer" : {
@@ -45,19 +47,29 @@ curl -XPUT localhost:9200/theegg_time2 -d '{
                         "analyzer" : "ik"
                     },
                     "url" : {
-                        "type" : "string"
+						"null_value":"",
+                        "type" : "string",
+						"index": "not_analyzed"
                     },
 					"url_id":{
+						"null_value":0,
+						"type":"integer"
+					},
+					"post_id":{
+						"null_value":0,
 						"type":"integer"
 					},
 					"article_time":{
 						"type":"integer"
 					},
 					"domain":{
-						"type":"string"
+						"type":"string",
+						"index": "not_analyzed"
 					},
 					"thumbnail":{
-						"type":"string"
+						"null_value":"",
+						"type":"string",
+						"index": "not_analyzed"
 					}
 
                 }
@@ -77,19 +89,29 @@ curl -XPUT localhost:9200/theegg_time2 -d '{
                         "analyzer" : "ik"
                     },
                     "url" : {
+						"null_value":"",
                         "type" : "string"
                     },
-					"url_id":{
+					"post_id":{
 						"type":"integer"
+					},
+					"url_id":{
+						"null_value":0,
+						"type":"integer",
+						"index": "not_analyzed"
 					},
 					"article_time":{
 						"type":"integer"
 					},
 					"domain":{
-						"type":"string"
+						"null_value":0,
+						"type":"string",
+						"index": "not_analyzed"
 					},
 					"thumbnail":{
-						"type":"string"
+						"null_value":"",
+						"type":"string",
+						"index": "not_analyzed"
 					}
 
                 }

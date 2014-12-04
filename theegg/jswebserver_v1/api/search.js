@@ -38,7 +38,6 @@ exports.init = function(conf) {
     client = new elasticsearch.Client({
         host: search.host + ":" + search.port,
         log: 'info',
-
     });
     indexConfig.index = search.index;
     indexConfig.type = search.type;
@@ -574,50 +573,6 @@ exports.extractKeyword = function(req, res, keyword) {
 		res.send(result);
 
 	});
-	/*
-    var data = text.replace(/\"/g, '\'').replace(/[\r\n\(\)\[\]]/g, '');
-    var opt = {
-        method: "POST",
-        host: "127.0.0.1",
-        port: 11200,
-        path: "/",
-        headers: {
-            "Content-Length": data.length
-        }
-    }
-    console.log("start req keyword: " + JSON.stringify(opt));
-    var keywordreq = http.request(opt, function(serverFeedback) {
-        if (serverFeedback.statusCode == 200) {
-            var body = "";
-            serverFeedback.on('data', function(data) {
-                body += data;
-            }).on('end', function() {
-                //var tokens =eval('('+body+')');//JSON.parse(body);
-                var tokens = JSON.parse(body.replace(/[\r\t\n\\\/]/g, ""));
-                var arr = [];
-                for (var t in tokens) {
-					var words=tokens[t].split(":");
-					if(words.length>0){
-                    	arr.push({word:words[0],score:words[1]});
-					}
-                }
-                //			console.log("source: "+JSON.stringify(arr));
-                //var ret = keyword.calculateIdf(arr);
-                //		console.log("idf:" + JSON.stringify(ret));
-                res.send(arr);
-            });
-
-        } else {
-            res.send(JSON.stringify({
-                request_id: req.request_id,
-                msg: errmsg,
-                error_code: 50013
-            }));
-        }
-    });
-    keywordreq.write(data);
-    keywordreq.end();
-	*/
 };
 
 exports.queryId = function(req, res) {

@@ -1,5 +1,5 @@
 {
-	"search": {
+	"search": { /* the ElasticSearch engine host , ip , default index & type*/
 		"host": "localhost",
 		"port": 9200,
 		"index": "testindex",
@@ -10,14 +10,14 @@
 		"cosmopolitan.com.hk":"cosmopolitan",
 		"default":"default"
 	},
-  "db": {
+  "db": { /*the mysql database for storage of original data: the page/site push by the plugin module*/
     "host": "127.0.0.1",
     "port": 3306,
     "user": "abcd",
     "password": "passwd",
     "database": "dbweb"
   },
-  "revive_db": {
+  "revive_db": { /*the revive database config*/
     "host": "127.0.0.1",
     "port": 3306,
     "user": "abcd",
@@ -26,11 +26,11 @@
 	"multipleStatements":true
 
   },
-  "es":{
+  "es":{/*ref of ElasticSearch engine log level*/
 	"host":"localhost:9200",
 	"log":"error"
   },
-  "domain_mapping":{
+  "domain_mapping":{ /*default index & type*/
 	  "default_index":"testindex",
 	  "default_type":"testtype"
   },

@@ -42,8 +42,8 @@ exports.getMaxPostId=function(req,res){
 	//		console.log(JSON.stringify(response));
 			req.appendlog('Max_post_id:%s domain:%s',max_post_id.value,domain);
 			console.log('Max_post_id:%s domain:%s',max_post_id.value,domain);
-			if(!max_post_id.value){
-				max_post_id.value=0;
+			if(!max_post_id.value || max_post_id.value==0){
+				max_post_id.value=-1;
 			}
 			res.send({
 				ret_value:max_post_id.value,
@@ -57,13 +57,56 @@ exports.getMaxPostId=function(req,res){
 
 
 }
+exports.deleteByUrl=function(req,res){
+	console.log('start delete :');
+	var body=[];
+	var index=req.param('index',indexConfig.index);
+	var type=req.param('type',indexConfig.type);
+	var url=req.param('url','');
+	req.appendlog("start delete by query url: %s",url);
+	if(url==''){
+		req.appendlog('url is null');
+		req.emit('end');
+		res.send(404);
+		return;
+	}
+	var _id=search.hash(url);
+	client.delete({
+		index: index,
+		type:type,
+		id:_id
+//		body: {
+//			query: {
+	//			term:{"url":url}
+//			}
+//		}
+
+	},function(error,response,status){
+		req.appendlog("end delete by query url: %s, id: %s",url,_id);
+		req.emit('end');
+		res.status(200);
+
+
+	});
+
+
+
+}
+var domainPatten=/cosmopolitan.com.hk|theegg.com|theegg.cn/;
+
+exports.checkdomain=function(domain){
+
+	return domainPatten.test(domain);
+
+
+}
 exports.bulkIndex=function(req,res){
 	var body=[];
 	var index=req.param('index',indexConfig.index);
 	var type=req.param('type',indexConfig.type);
 	var articles=req.param('posts','');
 	var domain=req.param('authdomain','');
-	if(articles=='' || domain!='cosmopolitan.com.hk'){
+	if(articles=='' || !exports.checkdomain(domain)){
 		req.appendlog('posts is null or domain invalid: %s',domain);
 		res.status(502);
 		res.end();
@@ -75,6 +118,8 @@ exports.bulkIndex=function(req,res){
 	//return;
 	for(var i in records){
 		var r=records[i];
+		if(!r ||!r.url)
+			continue;
 		var id=search.hash(r.url);
 		var action={index:{_index:index,_type:type,_id:id}};
 		var doc={content:r.content,contenttitle:r.contenttitle,article_time:r.article_time,url:r.url,domain:r.domain,post_id:r.post_id};
